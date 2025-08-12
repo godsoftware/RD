@@ -11,10 +11,9 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-import SimpleAuthPage from './pages/SimpleAuthPage';
 
 // Services
-import { authService } from './services/authService';
+import { enhancedAuthService } from './services/enhancedAuthService';
 
 // Context
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -31,8 +30,8 @@ function AppContent() {
       const token = localStorage.getItem('token');
       if (token && !user) {
         try {
-          const userData = await authService.getProfile();
-          login(userData, token);
+          const profile = await enhancedAuthService.getProfile();
+          login(profile, token);
         } catch (error) {
           console.error('Auto-login failed:', error);
           localStorage.removeItem('token');
@@ -58,10 +57,7 @@ function AppContent() {
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route 
-            path="/auth" 
-            element={<SimpleAuthPage />} 
-          />
+          {null}
           <Route 
             path="/login" 
             element={
@@ -82,7 +78,7 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<Navigate to="/auth" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </main>
     </div>

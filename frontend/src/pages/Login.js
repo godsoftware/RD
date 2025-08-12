@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
-import { authService } from '../services/authService';
+import { enhancedAuthService } from '../services/enhancedAuthService';
 
 /**
  * Login page component - User authentication form
@@ -82,10 +82,10 @@ const Login = () => {
     startLogin();
 
     try {
-      const { user, token } = await authService.login({
-        email: formData.email.trim().toLowerCase(),
-        password: formData.password
-      });
+      const { user, token } = await enhancedAuthService.login(
+        formData.email.trim().toLowerCase(),
+        formData.password
+      );
 
       login(user, token);
       toast.success(`Welcome back, ${user.username}!`);
@@ -101,17 +101,7 @@ const Login = () => {
   /**
    * Handle demo/test login
    */
-  const handleDemoLogin = async () => {
-    setFormData({
-      email: 'demo@example.com',
-      password: 'demo123'
-    });
-    
-    // Clear any validation errors
-    setValidationErrors({});
-    
-    toast.info('Demo credentials loaded. Click "Sign In" to continue.');
-  };
+  // Demo login removed
 
   return (
     <div className="auth-container">
@@ -215,15 +205,7 @@ const Login = () => {
               )}
             </button>
 
-            {/* Demo Login Button */}
-            <button
-              type="button"
-              className="btn btn-secondary w-full"
-              onClick={handleDemoLogin}
-              disabled={loading}
-            >
-              Try Demo Account
-            </button>
+            {null}
           </form>
 
           {/* Sign Up Link */}

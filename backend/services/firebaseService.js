@@ -63,69 +63,40 @@ class FirebaseService {
     }
 
     try {
-      // Token validasyonu
-      if (!idToken || typeof idToken !== 'string') {
-        throw new Error('Invalid token: Token must be a non-empty string');
-      }
-
-      // Token boş mu kontrol et
-      const trimmedToken = idToken.trim();
-      if (trimmedToken === '') {
-        throw new Error('Invalid token: Token cannot be empty');
-      }
-
-      // JWT format kontrolü (3 part: header.payload.signature)
-      const tokenParts = trimmedToken.split('.');
-      if (tokenParts.length !== 3) {
-        throw new Error('Invalid token format: Expected JWT format with 3 parts');
-      }
-
-      // Her part'ın base64url encoded olduğunu kontrol et
-      for (let i = 0; i < tokenParts.length; i++) {
-        if (!tokenParts[i] || tokenParts[i].length === 0) {
-          throw new Error(`Invalid token format: Part ${i + 1} is empty`);
-        }
-      }
-
-      // Firebase ile token'ı doğrula
-      const decodedToken = await this.auth.verifyIdToken(trimmedToken);
-      
-      if (!decodedToken) {
-        throw new Error('Token verification returned null');
-      }
-
-      // Token'ın temel alanlarını kontrol et
-      if (!decodedToken.uid) {
-        throw new Error('Invalid token: Missing user ID');
-      }
-
+      const decodedToken = await this.auth.verifyIdToken(idToken);
       return decodedToken;
     } catch (error) {
       console.error('Firebase token verification error:', error);
-      
-      // Firebase-specific hata mesajlarını yakala
-      if (error.code) {
-        switch (error.code) {
-          case 'auth/id-token-expired':
-            throw new Error('Token has expired. Please login again.');
-          case 'auth/id-token-revoked':
-            throw new Error('Token has been revoked. Please login again.');
-          case 'auth/argument-error':
-            throw new Error('Invalid token format provided.');
-          case 'auth/invalid-id-token':
-            throw new Error('Invalid ID token provided.');
-          default:
-            throw new Error(`Firebase Auth Error: ${error.message}`);
-        }
-      }
-      
-      // Kendi hata mesajlarımız
-      if (error.message.includes('Invalid token')) {
-        throw error;
-      }
-      
-      // Genel hata
       throw new Error('Invalid Firebase token');
+    }
+  }
+
+  async createUser(userData) {
+    if (!this.isInitialized) {
+      throw new Error('Firebase not initialized');
+    }
+
+    try {
+      const userRecord = await this.auth.createUser({
+        email: userData.email,
+        password: userData.password,
+        displayName: userData.displayName || userData.username,
+        disabled: false
+      });
+
+      // Firestore'da kullanıcı profili oluştur
+      await this.db.collection('users').doc(userRecord.uid).set({
+        email: userData.email,
+        username: userData.username,
+        role: userData.role || 'user',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        isActive: true
+      });
+
+      return userRecord;
+    } catch (error) {
+      console.error('Firebase create user error:', error);
+      throw error;
     }
   }
 

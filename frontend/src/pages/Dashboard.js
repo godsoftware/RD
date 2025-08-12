@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
-import { predictionService } from '../services/predictionService';
+import { enhancedPredictionService } from '../services/enhancedPredictionService';
 import MedicalImageUpload from '../components/MedicalImageUpload';
 import MedicalResultCard from '../components/MedicalResultCard';
 
@@ -37,7 +37,7 @@ const Dashboard = () => {
    */
   const loadStatistics = async () => {
     try {
-      const stats = await predictionService.getPredictionStats();
+      const stats = await enhancedPredictionService.getEnhancedPredictionStats();
       setStatistics(stats);
     } catch (error) {
       console.error('Failed to load statistics:', error);
@@ -53,7 +53,7 @@ const Dashboard = () => {
     
     try {
       const filterStatus = status === 'all' ? null : status;
-      const data = await predictionService.getPredictionHistory(page, 10, filterStatus);
+      const data = await enhancedPredictionService.getEnhancedPredictionHistory(page, 10, { status: filterStatus });
       
       setPredictionHistory(data.predictions);
       setHistoryPagination(data.pagination);

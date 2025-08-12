@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
-import { authService } from '../services/authService';
+import { enhancedAuthService } from '../services/enhancedAuthService';
 
 /**
  * Register page component - User registration form
@@ -142,7 +142,7 @@ const Register = () => {
     startLogin();
 
     try {
-      const { user, token } = await authService.register({
+      const { user, token } = await enhancedAuthService.register({
         username: formData.username.trim(),
         email: formData.email.trim().toLowerCase(),
         password: formData.password
