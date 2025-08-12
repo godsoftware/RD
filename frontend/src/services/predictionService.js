@@ -123,6 +123,10 @@ export const predictionService = {
     return this.makePrediction(additionalData, file, 'alzheimer');
   },
 
+  async predictTuberculosis(file, additionalData = {}) {
+    return this.makePrediction(additionalData, file, 'tuberculosis');
+  },
+
   // Auto-detect and predict
   async predictWithAutoDetection(file, additionalData = {}) {
     return this.makePrediction(additionalData, file, null);

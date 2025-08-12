@@ -8,6 +8,38 @@ Bu sistem, 3 farklı AI modeli ile medikal görüntü analizi yapar:
 - **🧠 Brain Tumor Detection** (CT/MRI images)  
 - **🧠 Alzheimer Detection** (MRI images)
 
+## ⚡ MongoDB olmadan hızlı başlangıç (Demo Mode)
+
+MongoDB bağlantısını henüz yapmadıysanız, sistemi hemen çalıştırmak için demo modunu açabilirsiniz. Bu modda kullanıcılar ve tahminler bellek içinde tutulur, AI sonuçları da demo/mock üretilir (gerçek model dosyası gerekmez).
+
+1) `backend/.env` dosyasını minimal olarak oluşturun:
+
+```env
+NODE_ENV=development
+PORT=5001
+
+# Demo mod açık: MongoDB gerektirmez
+DEMO_MODE=true
+
+# Zorunlu: JWT için geçici bir secret (geliştirmede yeterli)
+JWT_SECRET=dev-secret-change-later
+
+# (İsteğe bağlı) Gerçek model dosyalarınız varsa yollarını ekleyin
+# PNEUMONIA_MODEL_PATH=./ml/models/pneumonia_detection.h5
+# BRAIN_TUMOR_MODEL_PATH=./ml/models/brain_tumor_detection.h5
+# ALZHEIMER_MODEL_PATH=./ml/models/alzheimer_detection.h5
+```
+
+2) Çalıştırma:
+
+```powershell
+cd RD\backend
+npm install
+npm run dev
+```
+
+Bu şekilde MongoDB bağlantısı olmadan sistemi test edebilirsiniz. Hazır olduğunuzda demo modunu kapatıp (DEMO_MODE=false) aşağıdaki MongoDB adımlarına geçin.
+
 ## 🚀 **MANUAL SETUP STEPS**
 
 ### **1. MongoDB Atlas Setup**
@@ -16,7 +48,7 @@ Bu sistem, 3 farklı AI modeli ile medikal görüntü analizi yapar:
 2. **Hesap oluşturun** (Free tier)
 3. **Yeni cluster oluşturun** (M0 FREE)
 4. **Database user oluşturun**:
-   - Username/password kaydedin
+   - Username/password kaydedin =ozkaleresull  tmLSnNzzUnGjwKAF
 5. **Network Access** ayarlayın:
    - Add IP Address: `0.0.0.0/0` (veya specific IP)
 6. **Connection String** kopyalayın
@@ -33,7 +65,7 @@ PORT=5001
 MONGODB_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@your-cluster.xxxxx.mongodb.net/medical_ai_app?retryWrites=true&w=majority
 MONGODB_URI_DEV=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@your-cluster.xxxxx.mongodb.net/medical_ai_app_dev?retryWrites=true&w=majority
 
-# Switch to Production Mode
+# Switch to Production Mode (MongoDB kullanacaksanız kapatın)
 DEMO_MODE=false
 
 # JWT Secret (change this!)
@@ -74,6 +106,27 @@ backend/ml/models/
 - `brain_tumor_detection.h5` - Brain tumor AI model
 - `alzheimer_detection.h5` - Alzheimer AI model
 
+#### Model yolları (path) nasıl çalışır?
+
+- Yol değerleri backend çalıştırma dizinine göredir. Genelde komutları `RD/backend` altında çalıştırdığınız için `./ml/models/...` yolları doğru konuma işaret eder.
+- Ortam değişkenleri verilmezse varsayılan yollar kullanılır:
+  - Pneumonia: `./ml/models/pneumonia_detection.h5`
+  - Brain Tumor: `./ml/models/brain_tumor_detection.h5`
+  - Alzheimer: `./ml/models/alzheimer_detection.h5`
+- İsterseniz mutlak yol verebilirsiniz (Windows örnekleri):
+  - `PNEUMONIA_MODEL_PATH=C:\RD\RD\backend\ml\models\pneumonia_detection.h5`
+  - `BRAIN_TUMOR_MODEL_PATH=C:\RD\RD\backend\ml\models\brain_tumor_detection.h5`
+  - `ALZHEIMER_MODEL_PATH=C:\RD\RD\backend\ml\models\alzheimer_detection.h5`
+
+Windows'ta klasörü hızlıca oluşturmak için:
+
+```powershell
+cd RD\backend
+mkdir -Force .\ml\models
+```
+
+Ardından .h5 dosyalarınızı `RD\backend\ml\models\` klasörüne kopyalayın.
+
 ### **5. Model Acquisition Options**
 
 **OPTION A: Use Your Own Models**
@@ -89,6 +142,8 @@ backend/ml/models/
 **OPTION C: Demo Mode (Current)**
 - Set `DEMO_MODE=true` in `.env`
 - System will work with mock predictions
+
+> Not: Demo modda gerçek model dosyaları şart değildir. Gerçek model kullanımına geçmek için: model dosyalarını belirtilen klasöre ekleyin, `.env` içine yol değişkenlerini (isteğe bağlı) doğrulayın ve `DEMO_MODE=false` yapın. MongoDB için de bağlantı bilgilerini eklemeyi unutmayın.
 
 ## 🔄 **API ENDPOINTS**
 

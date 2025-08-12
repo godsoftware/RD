@@ -1,21 +1,33 @@
+require('dotenv').config();
+
 const express = require('express');
-// Removed MongoDB dependency for demo
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config();
+const firebaseService = require('./services/firebaseService');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+// Trust proxy for rate limiting (development için)
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 
-// Rate limiting
+// Rate limiting - updated configuration
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  // Skip successful responses for better UX
+  skipSuccessfulRequests: false,
+  // Custom key generator for development
+  keyGenerator: (req) => {
+    return req.ip || req.connection.remoteAddress || 'unknown';
+  }
 });
 app.use(limiter);
 
@@ -29,46 +41,29 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Check if demo mode is enabled
-if (process.env.DEMO_MODE === 'true') {
-  console.log('🚀 Demo Mode: Using in-memory storage');
-  console.log('📧 Demo Account: demo@medical.com');  
-  console.log('🔑 Demo Password: demo123');
-  console.log('👨‍⚕️ Doctor Account: doctor@medical.com');
-  console.log('🔑 Doctor Password: demo123');
-} else {
-  // MongoDB Connection - Real Database
-  const mongoose = require('mongoose');
-  
-  const connectDB = async () => {
-    try {
-      const mongoURI = process.env.NODE_ENV === 'production' 
-        ? process.env.MONGODB_URI 
-        : process.env.MONGODB_URI_DEV;
-      
-      console.log('🔗 Connecting to MongoDB...');
-      
-      const conn = await mongoose.connect(mongoURI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      });
-
-      console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
-      console.log(`📊 Database: ${conn.connection.name}`);
-    } catch (error) {
-      console.error('❌ MongoDB Connection Error:', error.message);
-      process.exit(1);
+// Initialize Firebase
+(async () => {
+  try {
+    const healthCheck = await firebaseService.healthCheck();
+    if (healthCheck.status === 'healthy') {
+      console.log('✅ Firebase connected successfully');
+      console.log('🔥 Using Firebase Firestore as database');
+      console.log('🔐 Firebase Authentication enabled');
+    } else {
+      console.error('❌ Firebase connection error:', healthCheck.message);
+      process.exit(1); // Exit if Firebase is not configured
     }
-  };
+  } catch (error) {
+    console.error('❌ Firebase initialization error:', error.message);
+    process.exit(1);
+  }
+})();
 
-  // Connect to database
-  connectDB();
-}
-
-// Routes
+// Routes - Firebase only
 app.use('/api', require('./routes/index'));
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/prediction', require('./routes/prediction'));
+app.use('/api/auth', require('./routes/enhancedAuth'));
+app.use('/api/prediction', require('./routes/enhancedPrediction'));
+app.use('/api/patients', require('./routes/patients'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

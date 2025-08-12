@@ -7,7 +7,8 @@
  * 3. Alzheimer Detection (MRI)
  */
 
-const tf = require('@tensorflow/tfjs-node');
+const tf = require('@tensorflow/tfjs');
+require('@tensorflow/tfjs-backend-cpu');
 const path = require('path');
 const fs = require('fs');
 
@@ -17,21 +18,37 @@ class RealModelLoader {
     this.models = {
       pneumonia: null,
       brainTumor: null, 
-      alzheimer: null
+      alzheimer: null,
+      tuberculosis: null
     };
     
     // Loading states
     this.loadingStates = {
       pneumonia: false,
       brainTumor: false,
-      alzheimer: false
+      alzheimer: false,
+      tuberculosis: false
     };
     
-    // Model paths from environment
+    // Model paths from environment or auto-resolved from common filenames
     this.modelPaths = {
-      pneumonia: process.env.PNEUMONIA_MODEL_PATH || './ml/models/pneumonia_detection.h5',
-      brainTumor: process.env.BRAIN_TUMOR_MODEL_PATH || './ml/models/brain_tumor_detection.h5', 
-      alzheimer: process.env.ALZHEIMER_MODEL_PATH || './ml/models/alzheimer_detection.h5'
+      pneumonia: process.env.PNEUMONIA_MODEL_PATH || this.resolveModelPath([
+        './ml/models/pneumonia_detection.h5',
+        './ml/models/best_pneumonia_model.h5'
+      ]),
+      brainTumor: process.env.BRAIN_TUMOR_MODEL_PATH || this.resolveModelPath([
+        './ml/models/brain_tumor_detection.h5',
+        './ml/models/best_brain_tumor_model.h5'
+      ]), 
+      alzheimer: process.env.ALZHEIMER_MODEL_PATH || this.resolveModelPath([
+        './ml/models/alzheimer_detection.h5',
+        './ml/models/best_alzheimer_model.h5'
+      ]),
+      tuberculosis: process.env.TUBERCULOSIS_MODEL_PATH || this.resolveModelPath([
+        './ml/models/tuberculosis_detection.h5',
+        './ml/models/best_tb_model.h5',
+        './ml/models/tb_detection.h5'
+      ])
     };
     
     // Model configurations
@@ -50,10 +67,31 @@ class RealModelLoader {
         inputShape: [224, 224, 3], // RGB image 224x224
         classes: ['Mild Demented', 'Moderate Demented', 'Non Demented', 'Very Mild Demented'], 
         threshold: 0.25 // Multi-class, lower threshold
+      },
+      tuberculosis: {
+        inputShape: [224, 224, 3], // RGB image 224x224
+        classes: ['Normal', 'Tuberculosis'],
+        threshold: 0.5
       }
     };
 
     console.log('🤖 Real AI Model Loader initialized');
+  }
+
+  /**
+   * Resolve first existing path from candidate list
+   * @param {string[]} candidatePaths
+   * @returns {string|null}
+   */
+  resolveModelPath(candidatePaths) {
+    for (const candidate of candidatePaths) {
+      const absolute = path.resolve(candidate);
+      if (fs.existsSync(absolute)) {
+        return candidate;
+      }
+    }
+    // Return the first candidate to keep a stable default; existence is checked later
+    return candidatePaths[0];
   }
 
   /**
@@ -303,6 +341,10 @@ class RealModelLoader {
         'Very Mild Demented': `Very mild cognitive decline detected (${confidence}% confidence). Early monitoring recommended.`,
         'Mild Demented': `Mild cognitive impairment detected (${confidence}% confidence). Medical evaluation recommended.`,
         'Moderate Demented': `Moderate cognitive decline detected (${confidence}% confidence). Comprehensive medical assessment needed.`
+      },
+      tuberculosis: {
+        'Normal': `Normal chest X-ray. No signs of tuberculosis detected (${confidence}% confidence).`,
+        'Tuberculosis': `Tuberculosis detected in chest X-ray (${confidence}% confidence). Immediate medical attention required.`
       }
     };
 
@@ -334,6 +376,10 @@ class RealModelLoader {
     
     if (filenameLower.includes('alzheimer') || filenameLower.includes('dementia')) {
       return 'alzheimer';
+    }
+    
+    if (filenameLower.includes('tb') || filenameLower.includes('tuberculosis')) {
+      return 'tuberculosis';
     }
     
     // Default fallback - could be enhanced with image analysis
@@ -391,6 +437,7 @@ module.exports = {
   predictPneumonia: (imageInput) => realModelLoader.predict(imageInput, 'pneumonia'),
   predictBrainTumor: (imageInput) => realModelLoader.predict(imageInput, 'brainTumor'),
   predictAlzheimer: (imageInput) => realModelLoader.predict(imageInput, 'alzheimer'),
+  predictTuberculosis: (imageInput) => realModelLoader.predict(imageInput, 'tuberculosis'),
   
   // Model management
   loadModel: (modelType) => realModelLoader.loadModel(modelType),
