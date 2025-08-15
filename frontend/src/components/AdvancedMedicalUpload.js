@@ -435,31 +435,103 @@ const AdvancedMedicalUpload = () => {
       return;
     }
 
+    console.log('🚀 Starting prediction process...');
+    console.log('📁 Selected File:', selectedFile.name);
+    console.log('🤖 Selected Model:', selectedModel);
+    console.log('👤 Patient Info:', patientInfo);
+
     setLoading(true);
+    setPrediction(null); // Clear previous prediction
     
     try {
       let result;
       
+      console.log('📡 Making API call...');
+      
       if (selectedModel === 'auto') {
+        console.log('🔄 Using auto-detection...');
         result = await enhancedPredictionService.predictWithAutoDetectionEnhanced(selectedFile, patientInfo);
       } else {
+        console.log(`🎯 Using specific model: ${selectedModel}`);
         const modelMethods = {
           pneumonia: enhancedPredictionService.predictPneumoniaEnhanced,
           brainTumor: enhancedPredictionService.predictBrainTumorEnhanced,
           tuberculosis: enhancedPredictionService.predictTuberculosisEnhanced
         };
         
-        result = await modelMethods[selectedModel](selectedFile, patientInfo);
+        const method = modelMethods[selectedModel];
+        if (!method) {
+          throw new Error(`Unknown model: ${selectedModel}`);
+        }
+        
+        result = await method(selectedFile, patientInfo);
       }
 
-      setPrediction(result);
+      console.log('✅ API call completed');
+      console.log('🔍 RAW API Response:', result);
+      console.log('🔍 Response Type:', typeof result);
+      console.log('🔍 Response Keys:', result ? Object.keys(result) : 'null');
+      console.log('🔍 Full Response Object:', JSON.stringify(result, null, 2));
+      
+      // Multiple extraction attempts
+      let predictionData = null;
+      
+      if (result?.data?.prediction) {
+        predictionData = result.data.prediction;
+        console.log('✅ Found prediction in result.data.prediction');
+      } else if (result?.prediction) {
+        predictionData = result.prediction;
+        console.log('✅ Found prediction in result.prediction');
+      } else if (result?.data) {
+        predictionData = result.data;
+        console.log('✅ Using result.data as prediction');
+      } else if (result && typeof result === 'object' && result.modelType) {
+        predictionData = result;
+        console.log('✅ Using result directly as prediction');
+      }
+      
+      console.log('🎯 Extracted Prediction Data:', predictionData);
+      console.log('🎯 Prediction Data Type:', typeof predictionData);
+      console.log('🎯 Prediction Data Keys:', predictionData ? Object.keys(predictionData) : 'null');
+      console.log('🎯 Prediction Data JSON:', JSON.stringify(predictionData, null, 2));
+      
+      if (!predictionData) {
+        console.error('❌ No prediction data found in response');
+        toast.error('API yanıtında tahmin verisi bulunamadı');
+        return;
+      }
+      
+      if (typeof predictionData !== 'object') {
+        console.error('❌ Invalid prediction data type:', typeof predictionData);
+        toast.error('Geçersiz tahmin verisi türü');
+        return;
+      }
+      
+      if (!predictionData.prediction) {
+        console.error('❌ Missing prediction field:', predictionData);
+        toast.error('Tahmin sonucu eksik');
+        return;
+      }
+      
+      console.log('🎯 Setting prediction state...');
+      setPrediction(predictionData);
+      
+      // Force re-render check
+      setTimeout(() => {
+        console.log('🔍 Prediction state after set:', predictionData);
+      }, 100);
+      
+      console.log('✅ Prediction state set successfully');
       toast.success('Analiz tamamlandı!');
       
     } catch (error) {
-      console.error('Prediction error:', error);
+      console.error('❌ Prediction error:', error);
+      console.error('❌ Error details:', error.message);
+      console.error('❌ Error stack:', error.stack);
       toast.error(error.message || 'Analiz sırasında hata oluştu');
     } finally {
       setLoading(false);
+      console.log('🏁 Prediction process completed');
     }
   };
 
@@ -482,9 +554,14 @@ const AdvancedMedicalUpload = () => {
     if (!prediction) return;
     
     try {
-      // Report kaydetme logic'i burada olacak
-      console.log('Saving report...', { prediction, patientInfo });
-      toast.success('Rapor kaydedildi!');
+      // Firebase'e otomatik olarak kaydedildiği için burada sadece bilgilendirme
+      console.log('Report saved automatically:', { prediction, patientInfo });
+      toast.success('Rapor Firebase\'e otomatik olarak kaydedildi! Geçmiş sayfasından görüntüleyebilirsiniz.');
+      
+      // Kullanıcıyı history sayfasına yönlendir
+      setTimeout(() => {
+        window.open('/history', '_blank');
+      }, 1500);
     } catch (error) {
       console.error('Save report error:', error);
       toast.error('Rapor kaydedilirken hata oluştu');
@@ -649,6 +726,40 @@ const AdvancedMedicalUpload = () => {
         </ImagePreview>
       )}
 
+      {/* Debug Info - Always show for troubleshooting */}
+      <div style={{
+        background: prediction ? '#e8f5e8' : '#ffeeee',
+        padding: '15px',
+        margin: '10px 0',
+        borderRadius: '8px',
+        fontSize: '12px',
+        fontFamily: 'monospace',
+        border: `2px solid ${prediction ? '#4caf50' : '#f44336'}`
+      }}>
+        <strong>🔍 Debug Info (Real-time):</strong><br/>
+        <strong>Prediction State:</strong> {prediction ? '✅ EXISTS' : '❌ NULL'}<br/>
+        <strong>Prediction Type:</strong> {typeof prediction}<br/>
+        <strong>Loading State:</strong> {loading ? '⏳ LOADING' : '✅ READY'}<br/>
+        <strong>Selected File:</strong> {selectedFile ? selectedFile.name : 'None'}<br/>
+        <strong>Selected Model:</strong> {selectedModel}<br/>
+        {prediction && (
+          <>
+            <strong>Prediction Keys:</strong> {Object.keys(prediction).join(', ')}<br/>
+            <strong>Prediction Value:</strong> {prediction.prediction}<br/>
+            <strong>Confidence:</strong> {prediction.confidence}%<br/>
+            <strong>Model Type:</strong> {prediction.modelType}<br/>
+            <strong>Is Positive:</strong> {prediction.isPositive ? 'Yes' : 'No'}<br/>
+            <strong>Gemini AI:</strong> {prediction.geminiInterpretation ? 'Available' : 'Not available'}<br/>
+          </>
+        )}
+        <br/>
+        <strong>🎯 Component Status:</strong><br/>
+        - File selected: {selectedFile ? '✅' : '❌'}<br/>
+        - API loading: {loading ? '⏳' : '✅'}<br/>
+        - Prediction data: {prediction ? '✅' : '❌'}<br/>
+        - Ready to display: {prediction && !loading ? '✅' : '❌'}<br/>
+      </div>
+
       {/* Prediction Result */}
       {prediction && (
         <PredictionResult 
@@ -677,12 +788,61 @@ const AdvancedMedicalUpload = () => {
             </div>
           </div>
 
+          {/* Original AI Interpretation */}
           <div className="medical-interpretation">
-            <div className="interpretation-title">Tıbbi Yorum</div>
+            <div className="interpretation-title">
+              <FontAwesomeIcon icon={faRobot} style={{marginRight: '8px'}} />
+              AI Model Yorumu
+            </div>
             <div className="interpretation-text">
-              {prediction.medicalInterpretation}
+              {prediction.medicalInterpretation || prediction.originalInterpretation}
             </div>
           </div>
+
+          {/* Gemini AI Enhanced Interpretation */}
+          {prediction.geminiInterpretation && (
+            <div className="medical-interpretation" style={{borderLeftColor: '#4285f4', background: 'linear-gradient(135deg, #f8f9ff, #e8f0fe)'}}>
+              <div className="interpretation-title">
+                <FontAwesomeIcon icon={faBrain} style={{marginRight: '8px', color: '#4285f4'}} />
+                Gemini AI Gelişmiş Yorumu
+              </div>
+              <div className="interpretation-text">
+                {prediction.geminiInterpretation}
+              </div>
+            </div>
+          )}
+
+          {/* Disease Information */}
+          {prediction.diseaseInfo && (
+            <div className="medical-interpretation" style={{borderLeftColor: '#34a853', background: 'linear-gradient(135deg, #f0f9ff, #e6f7ff)'}}>
+              <div className="interpretation-title">
+                <FontAwesomeIcon icon={faStethoscope} style={{marginRight: '8px', color: '#34a853'}} />
+                Hastalık Bilgileri
+              </div>
+              <div className="interpretation-text">
+                {prediction.diseaseInfo}
+              </div>
+            </div>
+          )}
+
+          {/* Processing Information */}
+          {(prediction.processingTime || prediction.enhancedAt) && (
+            <div className="processing-info" style={{
+              background: '#f8f9fa',
+              padding: '12px',
+              borderRadius: '8px',
+              marginTop: '15px',
+              fontSize: '0.9rem',
+              color: '#666'
+            }}>
+              {prediction.processingTime && (
+                <div>⏱️ İşlem Süresi: {prediction.processingTime}ms</div>
+              )}
+              {prediction.enhancedAt && (
+                <div>📅 Analiz Zamanı: {new Date(prediction.enhancedAt).toLocaleString('tr-TR')}</div>
+              )}
+            </div>
+          )}
 
           {prediction.allClasses && prediction.allClasses.length > 0 && (
             <div className="all-predictions">
@@ -694,6 +854,25 @@ const AdvancedMedicalUpload = () => {
                 </div>
               ))}
             </div>
+          )}
+
+          {/* Debug Information - Backend Response */}
+          {process.env.NODE_ENV === 'development' && (
+            <details style={{marginTop: '20px', fontSize: '0.85rem'}}>
+              <summary style={{cursor: 'pointer', color: '#666', fontWeight: '600'}}>
+                🔍 Backend Response (Debug)
+              </summary>
+              <pre style={{
+                background: '#f5f5f5',
+                padding: '10px',
+                borderRadius: '4px',
+                marginTop: '10px',
+                overflow: 'auto',
+                fontSize: '0.75rem'
+              }}>
+                {JSON.stringify(prediction, null, 2)}
+              </pre>
+            </details>
           )}
         </PredictionResult>
       )}

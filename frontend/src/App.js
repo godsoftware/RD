@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 // Components
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
+import PredictionHistory from './components/PredictionHistory';
 
 // Pages
 import Home from './pages/Home';
@@ -75,6 +76,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/history"
+            element={
+              <ProtectedRoute>
+                <PredictionHistory />
               </ProtectedRoute>
             }
           />

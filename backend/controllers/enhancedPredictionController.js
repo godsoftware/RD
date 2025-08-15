@@ -3,10 +3,88 @@ const firebaseService = require('../services/firebaseService');
 const geminiService = require('../services/geminiService');
 const { predict, validateInput, getModelInfo, predictPneumonia, predictBrainTumor, predictTuberculosis } = require('../ml/loadModel');
 
+// Geliştirilmiş model otomatik tespit fonksiyonu
+async function autoDetectModelFromImage(file, patientInfo) {
+  const filename = file.originalname.toLowerCase();
+  const mimetype = file.mimetype.toLowerCase();
+  
+  // Dosya adı analizi
+  const filenameScore = {
+    pneumonia: 0,
+    brainTumor: 0,
+    tuberculosis: 0
+  };
+  
+  // Pneumonia belirtileri
+  if (filename.includes('xray') || filename.includes('chest') || filename.includes('lung') || 
+      filename.includes('thorax') || filename.includes('pneumonia') || filename.includes('pneu')) {
+    filenameScore.pneumonia += 3;
+  }
+  
+  // Brain tumor belirtileri
+  if (filename.includes('brain') || filename.includes('mri') || filename.includes('ct') ||
+      filename.includes('head') || filename.includes('tumor') || filename.includes('glioma') ||
+      filename.includes('meningioma') || filename.includes('cranial')) {
+    filenameScore.brainTumor += 3;
+  }
+  
+  // Tuberculosis belirtileri
+  if (filename.includes('tb') || filename.includes('tuberculosis') || filename.includes('tbc') ||
+      filename.includes('koch') || filename.includes('mycobacterium')) {
+    filenameScore.tuberculosis += 3;
+  }
+  
+  // Hasta bilgisi analizi
+  if (patientInfo) {
+    const symptoms = (patientInfo.symptoms || '').toLowerCase();
+    const medicalHistory = (patientInfo.medicalHistory || '').toLowerCase();
+    const combinedText = symptoms + ' ' + medicalHistory;
+    
+    // Pneumonia semptomları
+    if (combinedText.includes('cough') || combinedText.includes('fever') || 
+        combinedText.includes('chest pain') || combinedText.includes('breathing') ||
+        combinedText.includes('öksürük') || combinedText.includes('ateş') ||
+        combinedText.includes('göğüs ağrısı') || combinedText.includes('nefes')) {
+      filenameScore.pneumonia += 2;
+    }
+    
+    // Brain tumor semptomları
+    if (combinedText.includes('headache') || combinedText.includes('seizure') ||
+        combinedText.includes('vision') || combinedText.includes('memory') ||
+        combinedText.includes('baş ağrısı') || combinedText.includes('nöbet') ||
+        combinedText.includes('görme') || combinedText.includes('hafıza')) {
+      filenameScore.brainTumor += 2;
+    }
+    
+    // Tuberculosis semptomları
+    if (combinedText.includes('night sweat') || combinedText.includes('weight loss') ||
+        combinedText.includes('fatigue') || combinedText.includes('blood cough') ||
+        combinedText.includes('gece terlemesi') || combinedText.includes('kilo kaybı') ||
+        combinedText.includes('yorgunluk') || combinedText.includes('kanlı öksürük')) {
+      filenameScore.tuberculosis += 2;
+    }
+  }
+  
+  // En yüksek skoru bulan model
+  const maxScore = Math.max(...Object.values(filenameScore));
+  
+  if (maxScore === 0) {
+    // Hiç eşleşme yoksa varsayılan olarak pneumonia
+    console.log('🔍 No specific indicators found, defaulting to pneumonia model');
+    return 'pneumonia';
+  }
+  
+  const detectedModel = Object.keys(filenameScore).find(key => filenameScore[key] === maxScore);
+  console.log('🎯 Model detection scores:', filenameScore);
+  console.log(`✅ Selected model: ${detectedModel} (score: ${maxScore})`);
+  
+  return detectedModel;
+}
+
 // @desc    Make enhanced prediction with Firebase + Gemini AI
 // @route   POST /api/prediction/predict
 // @access  Private
-const makeEnhancedPrediction = async (req, res) => {
+  const makeEnhancedPrediction = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -17,7 +95,7 @@ const makeEnhancedPrediction = async (req, res) => {
       });
     }
 
-    const userId = req.user.uid;
+    const userId = req.user?.uid || 'debug-user-123'; // DEBUG: Mock user for testing
     const file = req.file;
     
     // Patient bilgilerini al
@@ -75,10 +153,14 @@ const makeEnhancedPrediction = async (req, res) => {
     let savedPrediction = null;
     if (firebaseService.isInitialized) {
       try {
+        console.log('💾 Saving prediction to Firebase:', predictionData);
         savedPrediction = await firebaseService.savePrediction(predictionData);
+        console.log('✅ Firebase save successful:', savedPrediction.id);
       } catch (saveError) {
-        console.error('Firebase save error:', saveError);
+        console.error('❌ Firebase save error:', saveError);
       }
+    } else {
+      console.log('⚠️ Firebase service not initialized, skipping save');
     }
 
     try {
@@ -93,14 +175,30 @@ const makeEnhancedPrediction = async (req, res) => {
       };
 
       if (modelType === 'pneumonia') {
+        console.log('🫁 Using Pneumonia model (manual selection)');
         aiResult = await predictPneumonia(file.buffer);
       } else if (modelType === 'brainTumor') {
+        console.log('🧠 Using Brain Tumor model (manual selection)');
         aiResult = await predictBrainTumor(file.buffer);
       } else if (modelType === 'tuberculosis') {
+        console.log('🦠 Using Tuberculosis model (manual selection)');
         aiResult = await predictTuberculosis(file.buffer);
       } else {
-        // Otomatik model seçimi
-        aiResult = await predict(file.buffer, metadata);
+        // Geliştirilmiş otomatik model seçimi
+        console.log('🤖 Auto-detecting best model for image...');
+        const detectedModelType = await autoDetectModelFromImage(file, patientInfo);
+        console.log(`📊 Auto-detected model: ${detectedModelType}`);
+        
+        if (detectedModelType === 'pneumonia') {
+          aiResult = await predictPneumonia(file.buffer);
+        } else if (detectedModelType === 'brainTumor') {
+          aiResult = await predictBrainTumor(file.buffer);
+        } else if (detectedModelType === 'tuberculosis') {
+          aiResult = await predictTuberculosis(file.buffer);
+        } else {
+          // Fallback to general prediction
+          aiResult = await predict(file.buffer, metadata);
+        }
       }
 
       const processingTime = Date.now() - startTime;
@@ -131,18 +229,25 @@ const makeEnhancedPrediction = async (req, res) => {
         enhancedAt: new Date().toISOString()
       };
 
+      // Debug: Model sonucunu konsola yazdır
+      console.log('🎯 Final AI Result for Frontend:', JSON.stringify(finalResult, null, 2));
+
       // Firebase'de prediction'ı güncelle
       if (savedPrediction && firebaseService.isInitialized) {
         try {
+          console.log('🔄 Updating Firebase prediction:', savedPrediction.id);
           await firebaseService.db.collection('predictions').doc(savedPrediction.id).update({
             result: finalResult,
             status: 'completed',
             completedAt: new Date(),
             processingTime: processingTime
           });
+          console.log('✅ Firebase update successful');
         } catch (updateError) {
-          console.error('Firebase update error:', updateError);
+          console.error('❌ Firebase update error:', updateError);
         }
+      } else {
+        console.log('⚠️ Skipping Firebase update - no saved prediction or service not initialized');
       }
 
       // Patient kaydı yoksa oluştur/güncelle
@@ -176,7 +281,8 @@ const makeEnhancedPrediction = async (req, res) => {
         }
       }
 
-      res.status(201).json({
+      // Frontend için response formatını düzelt
+      const responseData = {
         success: true,
         message: 'Enhanced prediction completed successfully',
         data: {
@@ -184,8 +290,14 @@ const makeEnhancedPrediction = async (req, res) => {
           patientInfo: patientInfo,
           predictionId: savedPrediction?.id || null,
           imageUrl: uploadedFile?.publicUrl || null
-        }
-      });
+        },
+        // Backward compatibility için direkt prediction'ı da ekle
+        prediction: finalResult
+      };
+
+      console.log('📤 Sending response to frontend:', JSON.stringify(responseData, null, 2));
+      
+      res.status(201).json(responseData);
 
     } catch (predictionError) {
       console.error('AI Prediction error:', predictionError);
@@ -221,7 +333,7 @@ const makeEnhancedPrediction = async (req, res) => {
 // @access  Private
 const getEnhancedPredictionHistory = async (req, res) => {
   try {
-    const userId = req.user.uid;
+    const userId = req.user?.uid || 'debug-user-123'; // DEBUG: Mock user for testing
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const patientId = req.query.patientId;
@@ -234,42 +346,53 @@ const getEnhancedPredictionHistory = async (req, res) => {
       });
     }
 
+    // Basit query kullan - index gerektirmeyen
     let query = firebaseService.db.collection('predictions')
       .where('userId', '==', userId)
-      .orderBy('createdAt', 'desc');
+      .limit(limit * page); // Daha fazla veri al, sonra filtrele
 
-    if (patientId) {
-      query = query.where('patientInfo.patientId', '==', patientId);
-    }
-
-    if (modelType) {
-      query = query.where('result.modelType', '==', modelType);
-    }
-
-    // Pagination
-    const offset = (page - 1) * limit;
-    query = query.offset(offset).limit(limit);
+    // Pagination için offset kullanma, bunun yerine client-side pagination
 
     const snapshot = await query.get();
-    const predictions = [];
+    let allPredictions = [];
     
     snapshot.forEach(doc => {
-      predictions.push({
+      const data = doc.data();
+      allPredictions.push({
         id: doc.id,
-        ...doc.data()
+        ...data
       });
     });
 
-    // Total count için ayrı query
-    let countQuery = firebaseService.db.collection('predictions')
-      .where('userId', '==', userId);
-    
+    // Client-side filtering ve sorting
+    let filteredPredictions = allPredictions;
+
+    // Patient ID filter
     if (patientId) {
-      countQuery = countQuery.where('patientInfo.patientId', '==', patientId);
+      filteredPredictions = filteredPredictions.filter(pred => 
+        pred.patientInfo?.patientId === patientId
+      );
     }
-    
-    const countSnapshot = await countQuery.get();
-    const totalCount = countSnapshot.size;
+
+    // Model type filter
+    if (modelType) {
+      filteredPredictions = filteredPredictions.filter(pred => 
+        pred.result?.modelType === modelType
+      );
+    }
+
+    // Sort by createdAt descending
+    filteredPredictions.sort((a, b) => {
+      const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+      const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+      return dateB - dateA;
+    });
+
+    // Client-side pagination
+    const totalCount = filteredPredictions.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const predictions = filteredPredictions.slice(startIndex, endIndex);
 
     res.json({
       success: true,
@@ -354,7 +477,7 @@ const getEnhancedPredictionById = async (req, res) => {
 // @access  Private
 const getEnhancedPredictionStats = async (req, res) => {
   try {
-    const userId = req.user.uid;
+    const userId = req.user?.uid || 'debug-user-123'; // DEBUG: Mock user for testing
 
     if (!firebaseService.isInitialized) {
       return res.status(503).json({
@@ -369,16 +492,22 @@ const getEnhancedPredictionStats = async (req, res) => {
       endDate: new Date()
     };
 
+    // Basit query - sadece userId ile filtrele
     const userPredictionsQuery = firebaseService.db.collection('predictions')
-      .where('userId', '==', userId)
-      .where('createdAt', '>=', dateRange.startDate)
-      .where('createdAt', '<=', dateRange.endDate);
+      .where('userId', '==', userId);
 
     const snapshot = await userPredictionsQuery.get();
-    const predictions = [];
+    const allPredictions = [];
     
     snapshot.forEach(doc => {
-      predictions.push(doc.data());
+      allPredictions.push(doc.data());
+    });
+
+    // Client-side date filtering
+    const predictions = allPredictions.filter(pred => {
+      if (!pred.createdAt) return false;
+      const createdDate = pred.createdAt.toDate ? pred.createdAt.toDate() : new Date(pred.createdAt);
+      return createdDate >= dateRange.startDate && createdDate <= dateRange.endDate;
     });
 
     // İstatistikleri hesapla

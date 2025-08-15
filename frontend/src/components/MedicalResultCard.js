@@ -23,11 +23,14 @@ const MedicalResultCard = ({
   }
 
   // Extract data from either result or prediction object
-  const data = result || {
-    prediction: prediction?.result?.prediction,
-    confidence: prediction?.result?.confidence,
-    category: prediction?.result?.category,
-    processingTime: prediction?.processingTime,
+  console.log('🎯 MedicalResultCard - result prop:', result);
+  console.log('🎯 MedicalResultCard - prediction prop:', prediction);
+  
+  const data = result || prediction || {
+    prediction: prediction?.prediction || result?.prediction,
+    confidence: prediction?.confidence || result?.confidence,
+    category: prediction?.category || result?.category,
+    processingTime: prediction?.processingTime || result?.processingTime,
     createdAt: prediction?.createdAt,
     id: prediction?._id
   };
@@ -179,8 +182,30 @@ NOTE: This is an AI-assisted analysis and should be reviewed by a qualified radi
 
   const confidenceInfo = getConfidenceInfo();
 
+  console.log('🎯 MedicalResultCard - Final data object:', data);
+  console.log('🎯 MedicalResultCard - Medical data:', medicalData);
+  
   return (
     <div className={`medical-result-card ${compact ? 'compact' : ''}`}>
+      {/* Debug Info */}
+      <div style={{
+        background: '#f0f0f0',
+        padding: '10px',
+        margin: '10px 0',
+        borderRadius: '5px',
+        fontSize: '12px',
+        fontFamily: 'monospace'
+      }}>
+        <strong>🔍 MedicalResultCard Debug:</strong><br/>
+        Data exists: {data ? 'YES' : 'NO'}<br/>
+        Prediction: {data?.prediction || 'N/A'}<br/>
+        Confidence: {data?.confidence || 'N/A'}%<br/>
+        Model Type: {data?.modelType || 'N/A'}<br/>
+        Medical Analysis: {medicalData ? 'YES' : 'NO'}<br/>
+        Gemini AI: {data?.geminiInterpretation ? 'YES' : 'NO'}<br/>
+        Disease Info: {data?.diseaseInfo ? 'YES' : 'NO'}<br/>
+      </div>
+      
       {/* Header */}
       <div className="medical-result-header">
         <div className="result-title">
@@ -259,6 +284,68 @@ NOTE: This is an AI-assisted analysis and should be reviewed by a qualified radi
             </div>
           </div>
         </div>
+
+        {/* Gemini AI Interpretation */}
+        {data?.geminiInterpretation && (
+          <div className="gemini-section" style={{
+            background: 'linear-gradient(135deg, #f8f9ff, #e8f0fe)',
+            border: '2px solid #4285f4',
+            borderRadius: '12px',
+            padding: '20px',
+            margin: '20px'
+          }}>
+            <div className="section-header" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              marginBottom: '15px',
+              fontSize: '1.1rem',
+              fontWeight: '600',
+              color: '#4285f4'
+            }}>
+              <span>🤖</span>
+              <span>Gemini AI Gelişmiş Değerlendirme</span>
+            </div>
+            <div className="gemini-content" style={{
+              lineHeight: '1.6',
+              color: '#333',
+              whiteSpace: 'pre-wrap'
+            }}>
+              {data.geminiInterpretation}
+            </div>
+          </div>
+        )}
+
+        {/* Disease Info */}
+        {data?.diseaseInfo && (
+          <div className="disease-info-section" style={{
+            background: 'linear-gradient(135deg, #f0f9ff, #e6f7ff)',
+            border: '2px solid #34a853',
+            borderRadius: '12px',
+            padding: '20px',
+            margin: '20px'
+          }}>
+            <div className="section-header" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              marginBottom: '15px',
+              fontSize: '1.1rem',
+              fontWeight: '600',
+              color: '#34a853'
+            }}>
+              <span>ℹ️</span>
+              <span>Hastalık Bilgileri</span>
+            </div>
+            <div className="disease-info-content" style={{
+              lineHeight: '1.6',
+              color: '#333',
+              whiteSpace: 'pre-wrap'
+            }}>
+              {data.diseaseInfo}
+            </div>
+          </div>
+        )}
 
         {/* Quick Findings */}
         {!compact && medicalData.findings && (

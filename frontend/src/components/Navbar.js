@@ -84,6 +84,13 @@ const Navbar = () => {
                   Dashboard
                 </Link>
                 
+                <Link 
+                  to="/history" 
+                  className={`nav-link ${isActivePath('/history') ? 'active' : ''}`}
+                >
+                  History
+                </Link>
+                
                 {/* User Menu */}
                 <div className="user-menu">
                   <button 
@@ -183,6 +190,14 @@ const Navbar = () => {
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Dashboard
+                </Link>
+                
+                <Link 
+                  to="/history" 
+                  className={`mobile-nav-link ${isActivePath('/history') ? 'active' : ''}`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  History
                 </Link>
                 <div className="mobile-user-info">
                   <p className="mobile-username">{user?.username}</p>

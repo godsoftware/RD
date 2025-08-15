@@ -44,29 +44,109 @@ class GeminiService {
       };
     }
 
-    try {
-      const prompt = this.buildMedicalPrompt(predictionData, patientInfo);
-      
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const interpretation = response.text();
+    const maxRetries = 3;
+    const baseDelay = 2000;
 
-      return {
-        success: true,
-        interpretation: interpretation,
-        originalPrediction: predictionData.medicalInterpretation,
-        generatedAt: new Date().toISOString(),
-        model: 'gemini-1.5-flash'
-      };
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🤖 Gemini AI interpretation attempt ${attempt}/${maxRetries}`);
+        const prompt = this.buildMedicalPrompt(predictionData, patientInfo);
+        
+        // Timeout kontrolü ekle
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Gemini AI timeout after 30 seconds')), 30000)
+        );
+        
+        const result = await Promise.race([
+          this.model.generateContent(prompt),
+          timeoutPromise
+        ]);
+        
+        const response = await result.response;
+        const interpretation = response.text();
+        
+        // Boş response kontrolü
+        if (!interpretation || interpretation.trim().length === 0) {
+          throw new Error('Empty response from Gemini AI');
+        }
+        
+        console.log('✅ Gemini AI interpretation generated successfully');
+        console.log(`📝 Interpretation length: ${interpretation.length} characters`);
+        
+        return {
+          success: true,
+          interpretation: interpretation,
+          originalPrediction: predictionData.medicalInterpretation,
+          generatedAt: new Date().toISOString(),
+          model: 'gemini-1.5-flash',
+          attempts: attempt
+        };
 
-    } catch (error) {
-      console.error('Gemini AI generation error:', error);
-      return {
-        success: false,
-        message: error.message,
-        interpretation: predictionData.medicalInterpretation || 'Standard AI interpretation available'
-      };
+      } catch (error) {
+        console.error(`❌ Gemini AI attempt ${attempt} failed:`, error.message);
+        
+        const isRetryableError = error.message.includes('overloaded') ||
+                                error.message.includes('503') ||
+                                error.message.includes('rate limit') ||
+                                error.message.includes('quota') ||
+                                error.message.includes('timeout') ||
+                                error.message.includes('Empty response') ||
+                                error.message.includes('UNAVAILABLE') ||
+                                error.message.includes('INTERNAL') ||
+                                error.message.includes('SERVICE_UNAVAILABLE');
+        
+        if (attempt < maxRetries && isRetryableError) {
+          const delay = baseDelay * Math.pow(2, attempt - 1);
+          console.log(`⏳ Waiting ${delay}ms before retry... (Error: ${error.message})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        // Son deneme başarısız oldu, fallback kullan
+        console.error('❌ All Gemini AI attempts failed, using fallback');
+        return {
+          success: false,
+          message: error.message,
+          interpretation: this.getFallbackInterpretation(predictionData),
+          originalPrediction: predictionData.medicalInterpretation,
+          generatedAt: new Date().toISOString(),
+          model: 'fallback',
+          attempts: attempt,
+          fallback: true
+        };
+      }
     }
+  }
+
+  /**
+   * Get fallback interpretation when Gemini AI fails
+   * @param {Object} predictionData - AI prediction results
+   * @returns {string} Fallback medical interpretation
+   */
+  getFallbackInterpretation(predictionData) {
+    const { modelType, prediction, confidence, isPositive } = predictionData;
+    
+    const fallbackTemplates = {
+      pneumonia: {
+        positive: `Göğüs röntgeni analizinde pnömoni bulguları tespit edilmiştir (Güven: ${confidence}%). Bu sonuç yapay zeka analizi sonucudur ve kesin tanı için uzman doktor görüşü alınmalıdır. Nefes darlığı, ateş, öksürük gibi semptomlarınız varsa hemen sağlık kuruluşuna başvurunuz.`,
+        negative: `Göğüs röntgeni analizinde normal bulgular tespit edilmiştir (Güven: ${confidence}%). Ancak bu sonuç yalnızca yapay zeka analizidir. Semptomlarınız devam ediyorsa doktor kontrolü önerilir.`
+      },
+      brainTumor: {
+        positive: `Beyin görüntülemesinde ${prediction} tespit edilmiştir (Güven: ${confidence}%). Bu durum acil tıbbi değerlendirme gerektirir. Lütfen derhal bir nöroloji uzmanına başvurunuz. Bu sonuç yapay zeka analizi olup kesin tanı için ileri tetkikler gereklidir.`,
+        negative: `Beyin görüntülemesinde normal bulgular tespit edilmiştir (Güven: ${confidence}%). Ancak semptomlarınız varsa nöroloji uzmanı kontrolü önerilir.`
+      },
+      tuberculosis: {
+        positive: `Tüberküloz bulgularına rastlanmıştır (Güven: ${confidence}%). Bu bulaşıcı bir hastalıktır ve acil tıbbi müdahale gerektirir. Lütfen derhal bir göğüs hastalıkları uzmanına başvurunuz ve çevrenizdekileri koruma önlemleri alınız.`,
+        negative: `Tüberküloz bulgularına rastlanmamıştır (Güven: ${confidence}%). Ancak semptomlarınız varsa göğüs hastalıkları uzmanı kontrolü önerilir.`
+      }
+    };
+    
+    const template = fallbackTemplates[modelType];
+    if (!template) {
+      return `${prediction} tespit edilmiştir (Güven: ${confidence}%). Bu yapay zeka analizi sonucudur ve kesin tanı için uzman doktor görüşü alınmalıdır.`;
+    }
+    
+    return isPositive ? template.positive : template.negative;
   }
 
   /**
@@ -92,9 +172,47 @@ class GeminiService {
       medicalHistory
     } = patientInfo;
 
-    return `Sen bir uzman doktor asistanısın. Aşağıdaki tıbbi görüntü analizi sonuçlarını değerlendirip detaylı bir tıbbi yorum yap.
+    // Kısa ve öz prompt
+    return `Sen bir uzman doktor asistanısın. KISA ve ÖZ bir tıbbi değerlendirme yap. MAKSIMUM 200 KELİME.
 
-**GÖRÜNTÜ ANALİZİ SONUÇLARI:**
+**ANALİZ SONUÇLARI:**
+- Sonuç: ${prediction} (${confidence}% güven)
+- Durum: ${isPositive ? 'POZİTİF' : 'NEGATİF'}
+${age ? `- Yaş: ${age}` : ''}
+${symptoms ? `- Semptomlar: ${symptoms}` : ''}
+
+**KISA DEĞERLENDİRME İSTE (MAKSIMUM 200 KELİME):**
+
+**1. SONUÇ:** ${prediction} tespit edildi (%${confidence} güven).
+
+**2. DEĞERLENDİRME:** Bu güven seviyesi ne anlama geliyor?
+
+**3. ÖNERİ:** Acil durum var mı? Hangi adımlar atılmalı?
+
+**4. UYARI:** Bu sadece AI analizi. Mutlaka doktor kontrolü gerekli.
+
+KISA VE ÖZ YANIT VER. UZUN AÇIKLAMALAR YAPMA. TÜRKÇE YANIT VER. MAKSIMUM 200 KELİME.`;
+  }
+  
+  // Eski uzun prompt - artık kullanılmıyor
+  buildOldMedicalPrompt(predictionData, patientInfo) {
+    const {
+      modelType,
+      prediction,
+      confidence,
+      isPositive,
+      allClasses = []
+    } = predictionData;
+
+    const {
+      age,
+      weight,
+      gender,
+      symptoms,
+      medicalHistory
+    } = patientInfo;
+
+    return `**GÖRÜNTÜ ANALİZİ SONUÇLARI:**
 - Model Tipi: ${modelType}
 - Ana Tahmin: ${prediction}
 - Güven Oranı: ${confidence}%

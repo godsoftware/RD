@@ -142,13 +142,8 @@ class ModelLoader {
       classNames = ['Normal', 'Pneumonia'];
       medicalContext = 'pneumonia';
     } else if (filenameLower.includes('brain') || filenameLower.includes('mri') || filenameLower.includes('ct')) {
-      if (filenameLower.includes('alzheimer') || filenameLower.includes('dementia')) {
-        classNames = ['Non Demented', 'Very Mild Demented', 'Mild Demented', 'Moderate Demented'];
-        medicalContext = 'alzheimer';
-      } else {
-        classNames = ['No Tumor', 'Glioma', 'Meningioma', 'Pituitary'];
-        medicalContext = 'brainTumor';
-      }
+      classNames = ['Glioma', 'Meningioma', 'NoTumor'];
+      medicalContext = 'brainTumor';
     } else {
       // Default to pneumonia detection
       classNames = ['Normal', 'Pneumonia'];
@@ -166,16 +161,9 @@ class ModelLoader {
         'Pneumonia': `Pneumonia detected in chest X-ray (${Math.round(confidence * 100)}% confidence). Recommend medical consultation.`
       },
       brainTumor: {
-        'No Tumor': `No brain tumor detected in scan (${Math.round(confidence * 100)}% confidence).`,
         'Glioma': `Glioma type brain tumor detected (${Math.round(confidence * 100)}% confidence). Immediate medical attention required.`,
         'Meningioma': `Meningioma type brain tumor detected (${Math.round(confidence * 100)}% confidence). Medical consultation recommended.`,
-        'Pituitary': `Pituitary tumor detected (${Math.round(confidence * 100)}% confidence). Endocrinology consultation recommended.`
-      },
-      alzheimer: {
-        'Non Demented': `No signs of dementia detected (${Math.round(confidence * 100)}% confidence).`,
-        'Very Mild Demented': `Very mild cognitive decline detected (${Math.round(confidence * 100)}% confidence). Early monitoring recommended.`,
-        'Mild Demented': `Mild cognitive impairment detected (${Math.round(confidence * 100)}% confidence). Medical evaluation recommended.`,
-        'Moderate Demented': `Moderate cognitive decline detected (${Math.round(confidence * 100)}% confidence). Comprehensive medical assessment needed.`
+        'NoTumor': `No brain tumor detected in scan (${Math.round(confidence * 100)}% confidence).`
       }
     };
     
@@ -184,7 +172,7 @@ class ModelLoader {
       prediction: predictedClass,
       confidence: Math.round(confidence * 100),
       probability: confidence,
-      isPositive: predictedClass !== 'Normal' && predictedClass !== 'No Tumor' && predictedClass !== 'Non Demented',
+      isPositive: predictedClass !== 'Normal' && predictedClass !== 'NoTumor',
       threshold: 50, // Demo threshold
       allClasses: classNames.map((name, index) => ({
         class: name,
@@ -281,14 +269,7 @@ class ModelLoader {
         brainTumor: {
           modelType: 'brainTumor', 
           inputShape: [224, 224, 3],
-          classes: ['No Tumor', 'Glioma', 'Meningioma', 'Pituitary'],
-          threshold: 0.25,
-          isLoaded: this.isLoaded
-        },
-        alzheimer: {
-          modelType: 'alzheimer',
-          inputShape: [224, 224, 3], 
-          classes: ['Mild Demented', 'Moderate Demented', 'Non Demented', 'Very Mild Demented'],
+          classes: ['Glioma', 'Meningioma', 'NoTumor'],
           threshold: 0.25,
           isLoaded: this.isLoaded
         }
@@ -299,8 +280,7 @@ class ModelLoader {
     // Return all models info
     return [
       this.getModelInfo('pneumonia'),
-      this.getModelInfo('brainTumor'), 
-      this.getModelInfo('alzheimer')
+      this.getModelInfo('brainTumor')
     ];
   }
 }
@@ -329,12 +309,15 @@ module.exports = {
     return await modelLoader.predict(inputData, { filename: 'brain_mri.jpg' });
   },
   
-  predictAlzheimer: async (inputData) => {
+  // New: Tuberculosis specific prediction passthrough
+  predictTuberculosis: async (inputData) => {
     if (!modelLoader.isDemoMode && realModelLoader) {
-      return await realModelLoader.predictAlzheimer(inputData);
+      return await realModelLoader.predictTuberculosis(inputData);
     }
-    return await modelLoader.predict(inputData, { filename: 'alzheimer_mri.jpg' });
+    return await modelLoader.predict(inputData, { filename: 'chest_xray_tb.jpg' });
   },
+  
+  // predictAlzheimer removed
   
   // Auto detection
   autoDetectModelType: async (imageBuffer, metadata) => {
@@ -349,9 +332,6 @@ module.exports = {
       return 'pneumonia';
     }
     if (filenameLower.includes('brain') || filenameLower.includes('ct') || filenameLower.includes('mri')) {
-      if (filenameLower.includes('alzheimer') || filenameLower.includes('dementia')) {
-        return 'alzheimer';
-      }
       return 'brainTumor';
     }
     return 'pneumonia'; // Default

@@ -13,14 +13,25 @@ const apiClient = axios.create({
 // Request interceptor to add Firebase ID token
 apiClient.interceptors.request.use(
   async (config) => {
+    console.log('🔐 Request interceptor called');
     try {
       const token = await enhancedAuthService.getCurrentToken();
+      console.log('🔑 Token retrieved:', token ? 'YES' : 'NO');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+        console.log('✅ Authorization header set');
+      } else {
+        console.log('⚠️ No token available');
+        // DEBUG: Geçici olarak auth bypass
+        console.log('🚫 DEBUG: Bypassing auth for testing');
+        delete config.headers.Authorization;
       }
     } catch (error) {
-      console.error('Error getting auth token:', error);
+      console.error('❌ Error getting auth token:', error);
+      console.log('🚫 DEBUG: Bypassing auth due to error');
+      delete config.headers.Authorization;
     }
+    console.log('📤 Final request config:', config);
     return config;
   },
   (error) => {
@@ -31,6 +42,11 @@ apiClient.interceptors.request.use(
 // Response interceptor to handle common errors
 apiClient.interceptors.response.use(
   (response) => {
+    console.log('🔧 Axios Interceptor - Status:', response.status);
+    console.log('🔧 Axios Interceptor - Headers:', response.headers);
+    console.log('🔧 Axios Interceptor - Raw Response:', response);
+    console.log('🔧 Axios Interceptor - Response Data:', response.data);
+    console.log('🔧 Axios Interceptor - Data Type:', typeof response.data);
     return response.data;
   },
   (error) => {
@@ -87,8 +103,20 @@ export const enhancedPredictionService = {
         }
       });
 
+      console.log('📡 Raw API Response:', response);
+      console.log('📡 Response Status:', response?.success);
+      console.log('📡 Response Data:', response?.data);
+      console.log('📡 Full Response JSON:', JSON.stringify(response, null, 2));
+      
       if (response.success && response.data) {
+        console.log('✅ API Success - Returning Data:', response.data);
         return response.data;
+      } else if (response.data) {
+        console.log('⚠️ API Response without success flag - Returning Data:', response.data);
+        return response.data;
+      } else if (response.prediction) {
+        console.log('⚠️ API Response with direct prediction - Returning Prediction:', response.prediction);
+        return { prediction: response.prediction };
       }
 
       throw new Error(response.message || 'Enhanced prediction failed');
@@ -126,7 +154,7 @@ export const enhancedPredictionService = {
       if (filters.dateFrom) params.dateFrom = filters.dateFrom;
       if (filters.dateTo) params.dateTo = filters.dateTo;
 
-      const response = await apiClient.get('/prediction/enhanced/history', { params });
+      const response = await apiClient.get('/prediction/history', { params });
 
       if (response.success && response.data) {
         return response.data;
@@ -142,7 +170,7 @@ export const enhancedPredictionService = {
   // Get single enhanced prediction by ID
   async getEnhancedPredictionById(predictionId) {
     try {
-      const response = await apiClient.get(`/prediction/enhanced/${predictionId}`);
+      const response = await apiClient.get(`/prediction/${predictionId}`);
 
       if (response.success && response.data) {
         return response.data.prediction;
@@ -158,7 +186,7 @@ export const enhancedPredictionService = {
   // Get enhanced prediction statistics
   async getEnhancedPredictionStats() {
     try {
-      const response = await apiClient.get('/prediction/enhanced/stats');
+      const response = await apiClient.get('/prediction/stats');
 
       if (response.success && response.data) {
         return response.data.stats;
@@ -174,7 +202,7 @@ export const enhancedPredictionService = {
   // Delete enhanced prediction
   async deleteEnhancedPrediction(predictionId) {
     try {
-      const response = await apiClient.delete(`/prediction/enhanced/${predictionId}`);
+      const response = await apiClient.delete(`/prediction/${predictionId}`);
 
       if (response.success) {
         return response.message || 'Enhanced prediction deleted successfully';

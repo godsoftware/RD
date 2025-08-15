@@ -119,9 +119,7 @@ export const predictionService = {
     return this.makePrediction(additionalData, file, 'brainTumor');
   },
 
-  async predictAlzheimer(file, additionalData = {}) {
-    return this.makePrediction(additionalData, file, 'alzheimer');
-  },
+  // predictAlzheimer removed
 
   async predictTuberculosis(file, additionalData = {}) {
     return this.makePrediction(additionalData, file, 'tuberculosis');

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer } from 'react';
+import React, { createContext, useContext, useReducer, useCallback } from 'react';
 
 // Initial state
 const initialState = {
@@ -79,46 +79,46 @@ export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
   // Login function
-  const login = (user, token) => {
+  const login = useCallback((user, token) => {
     localStorage.setItem('token', token);
     dispatch({
       type: AUTH_ACTIONS.LOGIN_SUCCESS,
       payload: { user, token }
     });
-  };
+  }, []);
 
   // Logout function
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
     dispatch({ type: AUTH_ACTIONS.LOGOUT });
-  };
+  }, []);
 
   // Update user function
-  const updateUser = (user) => {
+  const updateUser = useCallback((user) => {
     dispatch({
       type: AUTH_ACTIONS.UPDATE_USER,
       payload: { user }
     });
-  };
+  }, []);
 
   // Start login process
-  const startLogin = () => {
+  const startLogin = useCallback(() => {
     dispatch({ type: AUTH_ACTIONS.LOGIN_START });
-  };
+  }, []);
 
   // Login failure
-  const loginFailure = (error) => {
+  const loginFailure = useCallback((error) => {
     localStorage.removeItem('token');
     dispatch({
       type: AUTH_ACTIONS.LOGIN_FAILURE,
       payload: { error }
     });
-  };
+  }, []);
 
   // Clear error
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
-  };
+  }, []);
 
   // Context value
   const value = {

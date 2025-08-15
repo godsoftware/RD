@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'react-toastify';
-import { predictionService } from '../services/predictionService';
+import { enhancedPredictionService } from '../services/enhancedPredictionService';
 
 /**
  * MedicalImageUpload component - Handles medical image upload and analysis
@@ -58,14 +58,13 @@ const MedicalImageUpload = ({ onAnalysisComplete, onAnalysisStart }) => {
     diagnosis: 'AI-Powered Diagnosis & Detection',
     pneumonia: 'Pneumonia Detection (X-ray AI)',
     tumor: 'Tumor Detection (Brain AI)', 
-    alzheimer: 'Alzheimer Assessment (MRI AI)',
     segmentation: 'Image Segmentation',
     measurement: 'Measurements & Metrics',
     comparison: 'Compare with Normal'
   };
 
   /**
-   * Handle file drop for drag & drop functionality
+   * Handle file drop for drag & drop functionalitya
    */
   const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
     // Handle rejected files
@@ -173,32 +172,41 @@ const MedicalImageUpload = ({ onAnalysisComplete, onAnalysisStart }) => {
       if (imageType === 'xray' && (analysisType === 'diagnosis' || analysisType === 'pneumonia')) {
         console.log('🫁 Using Pneumonia Detection AI Model');
         toast.info('🫁 Analyzing with Pneumonia Detection AI...');
-        result = await predictionService.predictPneumonia(uploadedFile, analysisData);
+        result = await enhancedPredictionService.predictPneumoniaEnhanced(uploadedFile, analysisData);
       } else if ((imageType === 'ct' || imageType === 'mri') && (analysisType === 'diagnosis' || analysisType === 'tumor')) {
         console.log('🧠 Using Brain Tumor Detection AI Model'); 
         toast.info('🧠 Analyzing with Brain Tumor Detection AI...');
-        result = await predictionService.predictBrainTumor(uploadedFile, analysisData);
-      } else if (imageType === 'mri' && analysisType === 'alzheimer') {
-        console.log('🧠 Using Alzheimer Detection AI Model');
-        toast.info('🧠 Analyzing with Alzheimer Detection AI...');
-        result = await predictionService.predictAlzheimer(uploadedFile, analysisData);
+        result = await enhancedPredictionService.predictBrainTumorEnhanced(uploadedFile, analysisData);
       } else {
         // Use auto-detection for other combinations
         console.log('🤖 Using AI Auto-Detection');
         toast.info('🤖 Auto-detecting best AI model...');
-        result = await predictionService.predictWithAutoDetection(uploadedFile, analysisData);
+        result = await enhancedPredictionService.predictWithAutoDetectionEnhanced(uploadedFile, analysisData);
+      }
+
+      console.log('🔍 RAW API Response:', result);
+      console.log('🔍 Response Type:', typeof result);
+      
+      // Extract prediction data from API response
+      const predictionData = result?.data?.prediction || result?.prediction || result;
+      console.log('🎯 Extracted Prediction Data:', predictionData);
+      
+      if (!predictionData) {
+        throw new Error('API yanıtında tahmin verisi bulunamadı');
       }
 
       // Enhance result with medical-specific information
       const enhancedResult = {
-        ...result,
+        ...predictionData,
         medicalAnalysis: {
           imageType: imageTypes[imageType].label,
           analysisType: analysisTypes[analysisType],
-          findings: generateMedicalFindings(result.result),
-          recommendations: generateRecommendations(imageType, result.result)
+          findings: generateMedicalFindings(predictionData),
+          recommendations: generateRecommendations(imageType, predictionData)
         }
       };
+
+      console.log('✅ Enhanced Result:', enhancedResult);
 
       // Notify parent of successful analysis
       if (onAnalysisComplete) {
@@ -264,7 +272,7 @@ const MedicalImageUpload = ({ onAnalysisComplete, onAnalysisStart }) => {
   const generateRecommendations = (type, result) => {
     const recommendations = [];
 
-    if (result.confidence < 0.7) {
+    if (result.confidence < 70) {
       recommendations.push('Recommend radiologist review');
       recommendations.push('Consider additional imaging if clinically indicated');
     }

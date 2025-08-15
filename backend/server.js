@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -40,6 +41,10 @@ app.use(cors({
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Serve TFJS model files over HTTP for frontend/CPU TFJS loading
+// Example: http://localhost:5001/models/brain_tumor_tfjs/model.json
+app.use('/models', express.static(path.join(__dirname, 'ml', 'models')));
 
 // Initialize Firebase
 (async () => {

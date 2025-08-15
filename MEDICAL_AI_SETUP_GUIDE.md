@@ -6,7 +6,7 @@ Bu sistem, 3 farklı AI modeli ile medikal görüntü analizi yapar:
 
 - **🫁 Pneumonia Detection** (X-ray images)
 - **🧠 Brain Tumor Detection** (CT/MRI images)  
-- **🧠 Alzheimer Detection** (MRI images)
+ 
 
 ## ⚡ MongoDB olmadan hızlı başlangıç (Demo Mode)
 
@@ -24,10 +24,11 @@ DEMO_MODE=true
 # Zorunlu: JWT için geçici bir secret (geliştirmede yeterli)
 JWT_SECRET=dev-secret-change-later
 
-# (İsteğe bağlı) Gerçek model dosyalarınız varsa yollarını ekleyin
-# PNEUMONIA_MODEL_PATH=./ml/models/pneumonia_detection.h5
-# BRAIN_TUMOR_MODEL_PATH=./ml/models/brain_tumor_detection.h5
-# ALZHEIMER_MODEL_PATH=./ml/models/alzheimer_detection.h5
+# (İsteğe bağlı) Gerçek model dosyalarınız varsa TFJS yollarını ekleyin
+# PNEUMONIA_MODEL_PATH=./ml/models/pneumonia_tfjs/model.json
+# BRAIN_TUMOR_MODEL_PATH=./ml/models/brain_tumor_tfjs/model.json
+# TUBERCULOSIS_MODEL_PATH=./ml/models/tb_tfjs/model.json
+ 
 ```
 
 2) Çalıştırma:
@@ -72,10 +73,11 @@ DEMO_MODE=false
 JWT_SECRET=your-super-secure-jwt-secret-key-here
 JWT_EXPIRE=7d
 
-# AI Model Paths (create these directories)
-PNEUMONIA_MODEL_PATH=./ml/models/pneumonia_detection.h5
-BRAIN_TUMOR_MODEL_PATH=./ml/models/brain_tumor_detection.h5
-ALZHEIMER_MODEL_PATH=./ml/models/alzheimer_detection.h5
+# AI Model Paths (TFJS)
+PNEUMONIA_MODEL_PATH=./ml/models/pneumonia_tfjs/model.json
+BRAIN_TUMOR_MODEL_PATH=./ml/models/brain_tumor_tfjs/model.json
+TUBERCULOSIS_MODEL_PATH=./ml/models/tb_tfjs/model.json
+ 
 
 # File Upload Limits
 MAX_FILE_SIZE=10485760
@@ -101,22 +103,25 @@ backend/ml/models/
 └── README.md (already created)
 ```
 
-**Model dosyalarınızı bu klasöre koyun:**
-- `pneumonia_detection.h5` - Pneumonia AI model  
-- `brain_tumor_detection.h5` - Brain tumor AI model
-- `alzheimer_detection.h5` - Alzheimer AI model
+**TFJS model klasörlerini bu klasöre koyun:**
+- `pneumonia_tfjs/model.json` + shard `.bin` dosyaları
+- `brain_tumor_tfjs/model.json` + shard `.bin` dosyaları
+- `tb_tfjs/model.json` + shard `.bin` dosyaları
+ 
 
 #### Model yolları (path) nasıl çalışır?
 
 - Yol değerleri backend çalıştırma dizinine göredir. Genelde komutları `RD/backend` altında çalıştırdığınız için `./ml/models/...` yolları doğru konuma işaret eder.
 - Ortam değişkenleri verilmezse varsayılan yollar kullanılır:
-  - Pneumonia: `./ml/models/pneumonia_detection.h5`
-  - Brain Tumor: `./ml/models/brain_tumor_detection.h5`
-  - Alzheimer: `./ml/models/alzheimer_detection.h5`
+  - Pneumonia: `./ml/models/pneumonia_tfjs/model.json`
+  - Brain Tumor: `./ml/models/brain_tumor_tfjs/model.json`
+  - Tuberculosis: `./ml/models/tb_tfjs/model.json`
+ 
 - İsterseniz mutlak yol verebilirsiniz (Windows örnekleri):
-  - `PNEUMONIA_MODEL_PATH=C:\RD\RD\backend\ml\models\pneumonia_detection.h5`
-  - `BRAIN_TUMOR_MODEL_PATH=C:\RD\RD\backend\ml\models\brain_tumor_detection.h5`
-  - `ALZHEIMER_MODEL_PATH=C:\RD\RD\backend\ml\models\alzheimer_detection.h5`
+  - `PNEUMONIA_MODEL_PATH=C:\RD\RD\backend\ml\models\pneumonia_tfjs\model.json`
+  - `BRAIN_TUMOR_MODEL_PATH=C:\RD\RD\backend\ml\models\brain_tumor_tfjs\model.json`
+  - `TUBERCULOSIS_MODEL_PATH=C:\RD\RD\backend\ml\models\tb_tfjs\model.json`
+ 
 
 Windows'ta klasörü hızlıca oluşturmak için:
 
@@ -125,14 +130,19 @@ cd RD\backend
 mkdir -Force .\ml\models
 ```
 
-Ardından .h5 dosyalarınızı `RD\backend\ml\models\` klasörüne kopyalayın.
+Ardından TFJS model klasörlerinizi `RD\backend\ml\models\` altına kopyalayın.
 
 ### **5. Model Acquisition Options**
 
 **OPTION A: Use Your Own Models**
 - Train your own models with TensorFlow/Keras
-- Save as `.h5` format
-- Place in `backend/ml/models/` folder
+- Convert to TFJS (browser/Node CPU):
+  ```bash
+  tensorflowjs_converter --input_format keras \
+      path/to/your_model.h5 \
+      ./backend/ml/models/your_model_tfjs
+  ```
+- Place the TFJS folder under `backend/ml/models/`
 
 **OPTION B: Download Pre-trained Models**
 - Check Kaggle for medical AI models
@@ -158,7 +168,7 @@ GET /api/auth/profile - Get user profile
 ```
 POST /api/prediction/predict - Auto-detect model and predict
   - Form data with 'file' field
-  - Optional 'modelType' field (pneumonia/brainTumor/alzheimer)
+  - Optional 'modelType' field (pneumonia/brainTumor/tuberculosis)
 
 GET /api/prediction/history - Get prediction history
 GET /api/prediction/stats - Get prediction statistics
@@ -172,12 +182,10 @@ DELETE /api/prediction/:id - Delete prediction
 1. **Filename-based detection:**
    - `*xray*`, `*chest*`, `*lung*` → Pneumonia Model
    - `*brain*`, `*ct*`, `*mri*` → Brain Tumor Model  
-   - `*alzheimer*`, `*dementia*` → Alzheimer Model
 
 2. **Frontend selection:**
    - X-ray + Diagnosis → Pneumonia Model
    - CT/MRI + Diagnosis → Brain Tumor Model
-   - MRI + Alzheimer → Alzheimer Model
 
 ### **Manual Model Selection**
 
@@ -185,9 +193,8 @@ Frontend'de model tipini belirtebilirsiniz:
 
 ```javascript
 // Specific model predictions
-predictionService.predictPneumonia(imageFile)
-predictionService.predictBrainTumor(imageFile) 
-predictionService.predictAlzheimer(imageFile)
+ predictionService.predictPneumonia(imageFile)
+ predictionService.predictBrainTumor(imageFile) 
 
 // Auto-detection
 predictionService.predictWithAutoDetection(imageFile)
@@ -242,7 +249,7 @@ npm start
 
 2. **Model Loading Errors:**
    - Check model file paths
-   - Verify model format (.h5 supported)
+   - Verify model format (TFJS `model.json` + `.bin` shards)
    - Check file permissions
 
 3. **MongoDB Connection:**
@@ -274,7 +281,7 @@ Backend (Node.js/Express)
 AI Models
 ├── Pneumonia Detection (X-ray)
 ├── Brain Tumor Detection (CT/MRI)
-└── Alzheimer Detection (MRI)
+└── Tuberculosis Detection (X-ray)
 ```
 
 ## 🔮 **Next Steps (Future Enhancements)**

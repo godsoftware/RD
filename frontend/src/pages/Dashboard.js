@@ -70,7 +70,12 @@ const Dashboard = () => {
    * Handle successful prediction completion
    */
   const handlePredictionComplete = (result) => {
+    console.log('🎯 Dashboard - handlePredictionComplete called');
+    console.log('🎯 Dashboard - Result:', result);
+    console.log('🎯 Dashboard - Result type:', typeof result);
+    
     if (result) {
+      console.log('✅ Dashboard - Setting current result and switching to result tab');
       setCurrentResult(result);
       setActiveTab('result');
       
@@ -81,6 +86,8 @@ const Dashboard = () => {
       if (predictionHistory.length > 0) {
         loadPredictionHistory(1, historyFilter);
       }
+    } else {
+      console.log('❌ Dashboard - No result received');
     }
   };
 
@@ -211,8 +218,8 @@ const Dashboard = () => {
             <div className="result-tab">
               {currentResult ? (
                 <MedicalResultCard
-                  result={currentResult.result}
-                  prediction={currentResult.prediction}
+                  result={currentResult}
+                  prediction={currentResult}
                   onDelete={handlePredictionDelete}
                   showActions={true}
                   compact={false}
