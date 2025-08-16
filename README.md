@@ -1,96 +1,137 @@
-# 🧠 RD Prediction System
+# 🧠 RD Medical AI Prediction System
 
-A full-stack AI-powered prediction web application built with **React**, **Node.js**, **Express**, and **TensorFlow.js**. This application allows users to upload data files or input data manually to get AI-powered predictions with confidence scores.
+A cutting-edge, full-stack AI-powered medical prediction web application built with **React**, **Node.js**, **Express**, **TensorFlow.js**, **Firebase**, and **Google Gemini AI**. This advanced system provides medical image analysis for brain tumors, pneumonia, and tuberculosis detection with AI-powered interpretations and personalized health recommendations.
 
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
 ![Express.js](https://img.shields.io/badge/express.js-%23404d59.svg?style=for-the-badge&logo=express&logoColor=%2361DAFB)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-%23FF6F00.svg?style=for-the-badge&logo=TensorFlow&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-%23039BE5.svg?style=for-the-badge&logo=firebase)
+![Google AI](https://img.shields.io/badge/Google_AI-%23FF6F00.svg?style=for-the-badge&logo=google&logoColor=white)
 
-## ✨ Features
+## ✨ Advanced Features
 
-### 🔐 Authentication & Security
-- **JWT-based authentication** with secure token management
-- **User registration and login** with input validation
-- **Protected routes** and middleware for secure API access
-- **Password hashing** using bcrypt with salt rounds
-- **Input sanitization** and validation on both frontend and backend
+### 🔐 Enhanced Authentication & Security
+- **Firebase Authentication** with secure ID token management
+- **Real-time user session management** with automatic token refresh
+- **Protected API routes** with Firebase Admin SDK middleware
+- **Role-based access control** (User, Doctor, Admin)
+- **Advanced security headers** with Helmet.js
+- **Rate limiting** protection against abuse (100 requests/15min)
+- **CORS configuration** optimized for production
 
-### 🤖 AI Prediction Engine
+### 🤖 Advanced AI Prediction Engine
+- **Multi-model AI system** for medical image analysis:
+  - 🧠 **Brain Tumor Detection** - MRI/CT scan analysis
+  - 🫁 **Pneumonia Detection** - X-ray chest analysis  
+  - 🦠 **Tuberculosis Detection** - Chest X-ray analysis
 - **TensorFlow.js integration** for client-side and server-side ML
-- **Multiple input methods**: File upload (CSV, JSON, images) or manual input
+- **Automatic model selection** based on image content and metadata
 - **Real-time predictions** with confidence scores and processing time
-- **Model validation** and error handling
-- **Prediction history** tracking with metadata
+- **Advanced error handling** and model validation
+- **Model versioning** and performance tracking
 
-### 📊 User Dashboard
-- **Interactive dashboard** with prediction tools
-- **Real-time statistics** and analytics
-- **Prediction history** with filtering and pagination
-- **Detailed results** with confidence levels and categories
-- **Responsive design** for all device sizes
+### 🧠 Gemini AI Integration
+- **Google Gemini AI-powered medical interpretation** of AI results
+- **Personalized health recommendations** based on patient data
+- **Disease information generation** for positive cases
+- **Multi-language support** (English/Turkish medical terminology)
+- **Context-aware medical insights** with patient history consideration
 
-### 🎨 Modern UI/UX
-- **Responsive design** with mobile-first approach
-- **Intuitive drag & drop** file upload interface
-- **Real-time form validation** with user-friendly error messages
-- **Loading states** and progress indicators
-- **Toast notifications** for user feedback
-- **Dark/light theme support** (customizable)
+### 📊 Advanced User Dashboard
+- **Real-time medical analytics** and prediction statistics
+- **Patient management system** with medical history tracking
+- **Advanced filtering** by model type, date range, and patient
+- **Interactive charts** and data visualization
+- **Export functionality** for medical reports
+- **Responsive design** optimized for medical professionals
 
-## 🏗️ Architecture
+### 🎨 Modern Medical UI/UX
+- **Medical-grade interface** designed for healthcare professionals
+- **Intuitive drag & drop** medical image upload
+- **Real-time form validation** with medical data standards
+- **Loading states** and progress indicators for AI processing
+- **Toast notifications** for medical alerts and results
+- **Dark/light theme** support for different work environments
+- **Mobile-responsive** design for point-of-care use
+
+### 🔒 Data Security & Privacy
+- **HIPAA-compliant data handling** for medical information
+- **Firebase Firestore** secure document storage
+- **Encrypted data transmission** with HTTPS
+- **User data isolation** and privacy protection
+- **Audit logging** for medical compliance
+
+## 🏗️ Enhanced Architecture
 
 ```
-RD-PREDICTION-SYSTEM/
-├── backend/                    # Node.js + Express API
-│   ├── controllers/           # Business logic
-│   │   ├── authController.js  # Authentication endpoints
-│   │   └── predictionController.js # Prediction logic
-│   ├── middleware/            # Custom middleware
-│   │   ├── auth.js           # JWT authentication
-│   │   └── validation.js     # Input validation
-│   ├── models/               # MongoDB schemas
-│   │   ├── User.js          # User model
-│   │   └── Prediction.js    # Prediction model
-│   ├── ml/                  # Machine Learning
-│   │   └── loadModel.js     # TensorFlow.js model loader
-│   ├── routes/              # API routes
-│   │   ├── auth.js         # Authentication routes
-│   │   ├── prediction.js   # Prediction routes
-│   │   └── index.js        # Main routes
-│   ├── .env.example        # Environment variables template
-│   ├── package.json        # Dependencies and scripts
-│   └── server.js          # Express server entry point
+RD-MEDICAL-AI-SYSTEM/
+├── backend/                           # Node.js + Express API
+│   ├── controllers/                  # Business logic
+│   │   ├── enhancedPredictionController.js # Advanced AI prediction
+│   │   ├── firebaseAuthController.js # Firebase authentication
+│   │   └── patientsController.js     # Patient management
+│   ├── middleware/                   # Custom middleware
+│   │   ├── firebaseAuth.js          # Firebase authentication
+│   │   ├── upload.js                # Medical image upload
+│   │   └── validation.js            # Medical data validation
+│   ├── ml/                          # Machine Learning
+│   │   ├── models/                  # Pre-trained AI models
+│   │   │   ├── brain_tumor_graph_final/    # Brain tumor detection
+│   │   │   ├── pneumonia_graph_final/      # Pneumonia detection
+│   │   │   └── tuberculosis_graph_final/   # Tuberculosis detection
+│   │   ├── loadModel.js             # TensorFlow.js model loader
+│   │   └── realModelLoader.js       # Production model management
+│   ├── services/                    # External services
+│   │   ├── firebaseService.js       # Firebase integration
+│   │   └── geminiService.js         # Google Gemini AI service
+│   ├── routes/                      # API routes
+│   │   ├── enhancedPrediction.js    # AI prediction endpoints
+│   │   ├── enhancedAuth.js          # Authentication routes
+│   │   ├── patients.js              # Patient management
+│   │   └── index.js                 # Main routes
+│   ├── .env.example                 # Environment variables template
+│   ├── package.json                 # Dependencies and scripts
+│   └── server.js                    # Express server entry point
 │
-├── frontend/                 # React Application
-│   ├── public/              # Static files
-│   │   ├── index.html      # HTML template
-│   │   └── manifest.json   # PWA manifest
+├── frontend/                        # React Application
+│   ├── public/                      # Static files
+│   │   ├── index.html              # HTML template
+│   │   └── manifest.json           # PWA manifest
 │   ├── src/
-│   │   ├── components/     # Reusable components
-│   │   │   ├── Navbar.js          # Navigation component
-│   │   │   ├── UploadForm.js      # File upload & input form
-│   │   │   ├── ResultCard.js      # Prediction results display
-│   │   │   └── ProtectedRoute.js  # Route protection
-│   │   ├── pages/          # Page components
-│   │   │   ├── Home.js           # Landing page
-│   │   │   ├── Login.js          # Login page
-│   │   │   ├── Register.js       # Registration page
-│   │   │   └── Dashboard.js      # Main dashboard
-│   │   ├── services/       # API services
-│   │   │   ├── authService.js    # Authentication API calls
-│   │   │   └── predictionService.js # Prediction API calls
-│   │   ├── context/        # React Context
-│   │   │   └── AuthContext.js    # Authentication state
-│   │   ├── App.js         # Main application component
-│   │   ├── index.js       # React entry point
-│   │   ├── App.css        # Application styles
-│   │   └── index.css      # Global styles
-│   └── package.json       # Dependencies and scripts
+│   │   ├── components/             # Reusable components
+│   │   │   ├── AdvancedMedicalUpload.js    # Medical image upload
+│   │   │   ├── MedicalDashboard.js         # Medical dashboard
+│   │   │   ├── MedicalResultCard.js        # Medical results display
+│   │   │   ├── PatientHistory.js           # Patient history
+│   │   │   ├── PredictionHistory.js        # Prediction tracking
+│   │   │   ├── ProtectedRoute.js           # Route protection
+│   │   │   └── SimpleAuth.js               # Authentication UI
+│   │   ├── pages/                  # Page components
+│   │   │   ├── Home.js             # Landing page
+│   │   │   ├── Login.js            # Login page
+│   │   │   ├── Register.js         # Registration page
+│   │   │   ├── Dashboard.js        # Main dashboard
+│   │   │   ├── Profile.js          # User profile
+│   │   │   └── SimpleAuthPage.js   # Authentication page
+│   │   ├── services/               # API services
+│   │   │   ├── enhancedAuthService.js      # Firebase auth
+│   │   │   ├── enhancedPredictionService.js # AI prediction API
+│   │   │   ├── firebaseConfig.js           # Firebase configuration
+│   │   │   └── predictionService.js        # Legacy prediction API
+│   │   ├── context/                # React Context
+│   │   │   └── AuthContext.js      # Authentication state
+│   │   ├── App.js                  # Main application component
+│   │   ├── index.js                # React entry point
+│   │   ├── App.css                 # Application styles
+│   │   └── index.css               # Global styles
+│   └── package.json                # Dependencies and scripts
 │
-├── README.md              # Project documentation
-└── .gitignore            # Git ignore rules
+├── FIREBASE_CONFIG_INSTRUCTIONS.md  # Firebase setup guide
+├── MEDICAL_AI_SETUP_GUIDE.md       # AI model setup guide
+├── DEPENDENCIES.md                  # Dependency documentation
+├── README.md                        # Project documentation
+└── .gitignore                       # Git ignore rules
 ```
 
 ## 🚀 Quick Start
@@ -98,15 +139,16 @@ RD-PREDICTION-SYSTEM/
 ### Prerequisites
 
 - **Node.js** (v16.0.0 or higher)
-- **MongoDB** (v4.4 or higher)
+- **Firebase project** with Firestore and Authentication enabled
+- **Google Gemini AI API key**
 - **npm** or **yarn** package manager
 
 ### 📦 Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/rd-prediction-system.git
-   cd rd-prediction-system
+   git clone https://github.com/yourusername/rd-medical-ai-system.git
+   cd rd-medical-ai-system
    ```
 
 2. **Install backend dependencies**
@@ -127,13 +169,18 @@ RD-PREDICTION-SYSTEM/
    ```env
    # Environment Configuration
    NODE_ENV=development
-   PORT=5000
+   PORT=5001
 
-   # Database
-   MONGODB_URI=mongodb://localhost:27017/rd_prediction
+   # Firebase Configuration
+   FIREBASE_PROJECT_ID=your-project-id
+   FIREBASE_PRIVATE_KEY_ID=your-private-key-id
+   FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+   FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com
+   FIREBASE_CLIENT_ID=your-client-id
+   FIREBASE_CLIENT_CERT_URL=https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-xxxxx%40your-project.iam.gserviceaccount.com
 
-   # JWT Secret (use a strong, random key in production)
-   JWT_SECRET=your_super_secret_jwt_key_here_change_this_in_production
+   # Google Gemini AI
+   GEMINI_API_KEY=your-gemini-api-key
 
    # Frontend URL
    FRONTEND_URL=http://localhost:3000
@@ -142,45 +189,67 @@ RD-PREDICTION-SYSTEM/
    MAX_FILE_SIZE=10485760
    UPLOAD_PATH=./uploads
 
-   # Model Settings
-   MODEL_PATH=./ml/model.h5
+   # Security
+   RATE_LIMIT_WINDOW_MS=900000
+   RATE_LIMIT_MAX_REQUESTS=100
    ```
 
-2. **Frontend Environment** - Create `frontend/.env` (optional):
+2. **Frontend Environment** - Create `frontend/.env`:
    ```env
-   REACT_APP_API_URL=http://localhost:5000/api
+   REACT_APP_API_URL=http://localhost:5001/api
+   REACT_APP_FIREBASE_API_KEY=your-firebase-api-key
+   REACT_APP_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+   REACT_APP_FIREBASE_PROJECT_ID=your-project-id
+   REACT_APP_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+   REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+   REACT_APP_FIREBASE_APP_ID=your-app-id
    ```
 
-### 🗄️ Database Setup
+### 🔥 Firebase Setup
 
-1. **Start MongoDB**
-   ```bash
-   # Using MongoDB service
-   sudo systemctl start mongod
+1. **Create Firebase Project**:
+   - Go to [Firebase Console](https://console.firebase.google.com/)
+   - Create new project or use existing
+   - Enable Authentication (Email/Password)
+   - Enable Firestore Database
+   - Enable Storage (for medical images)
 
-   # Or using Docker
-   docker run -d -p 27017:27017 --name mongodb mongo:latest
+2. **Generate Service Account Key**:
+   - Go to Project Settings > Service Accounts
+   - Generate new private key
+   - Download JSON file and extract values to `.env`
+
+3. **Configure Firestore Rules**:
+   ```javascript
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /predictions/{document} {
+         allow read, write: if request.auth != null && 
+                            request.auth.uid == resource.data.userId;
+       }
+       match /users/{userId} {
+         allow read, write: if request.auth != null && 
+                            request.auth.uid == userId;
+       }
+       match /patients/{patientId} {
+         allow read, write: if request.auth != null;
+       }
+     }
+   }
    ```
-
-2. **Database will be created automatically** when the backend starts.
 
 ### 🤖 AI Model Setup
 
-1. **Prepare your TensorFlow model**:
-   - If you have a `.h5` model file, place it in `backend/ml/model.h5`
-   - The application will automatically load and use this model
-   - For custom models, modify `backend/ml/loadModel.js`
+1. **Pre-trained Models Included**:
+   - **Brain Tumor Detection**: `brain_tumor_graph_final/`
+   - **Pneumonia Detection**: `pneumonia_graph_final/`
+   - **Tuberculosis Detection**: `tuberculosis_graph_final/`
 
-2. **Convert Keras model to TensorFlow.js** (if needed):
-   ```bash
-   # Install tensorflowjs converter
-   pip install tensorflowjs
-
-   # Convert model
-   tensorflowjs_converter --input_format=keras \
-                         ./path/to/model.h5 \
-                         ./backend/ml/
-   ```
+2. **Custom Model Integration**:
+   - Place your `.h5` model files in `backend/ml/models/`
+   - Update `backend/ml/loadModel.js` for custom preprocessing
+   - Models automatically load on server startup
 
 ### 🔧 Running the Application
 
@@ -191,7 +260,7 @@ RD-PREDICTION-SYSTEM/
    # or
    npm start    # Production
    ```
-   Backend will be available at: `http://localhost:5000`
+   Backend will be available at: `http://localhost:5001`
 
 2. **Start the frontend development server**:
    ```bash
@@ -202,32 +271,33 @@ RD-PREDICTION-SYSTEM/
 
 3. **Access the application**:
    - Open your browser and navigate to `http://localhost:3000`
-   - Register a new account or use the demo login
-   - Start making predictions!
+   - Register a new account with Firebase
+   - Start analyzing medical images!
 
-## 📚 API Documentation
+## 📚 Enhanced API Documentation
 
 ### Authentication Endpoints
 
-#### Register User
+#### Register User (Firebase)
 ```http
 POST /api/auth/register
 Content-Type: application/json
 
 {
-  "username": "testuser",
-  "email": "user@example.com",
-  "password": "SecurePass123"
+  "email": "doctor@hospital.com",
+  "password": "SecurePass123",
+  "username": "Dr. Smith",
+  "role": "doctor"
 }
 ```
 
-#### Login User
+#### Login User (Firebase)
 ```http
 POST /api/auth/login
 Content-Type: application/json
 
 {
-  "email": "user@example.com",
+  "email": "doctor@hospital.com",
   "password": "SecurePass123"
 }
 ```
@@ -235,182 +305,300 @@ Content-Type: application/json
 #### Get User Profile
 ```http
 GET /api/auth/profile
-Authorization: Bearer <jwt_token>
+Authorization: Bearer <firebase_id_token>
 ```
 
-### Prediction Endpoints
+### Enhanced AI Prediction Endpoints
 
-#### Make Prediction
+#### Make Enhanced Medical Prediction
 ```http
-POST /api/prediction/predict
-Authorization: Bearer <jwt_token>
+POST /api/prediction/enhanced
+Authorization: Bearer <firebase_id_token>
+Content-Type: multipart/form-data
+
+Form Data:
+- file: [medical_image.jpg]
+- patientName: "John Doe"
+- age: 45
+- gender: "male"
+- symptoms: "Chest pain, cough"
+- medicalHistory: "Previous respiratory issues"
+- modelType: "auto" (or "pneumonia", "brainTumor", "tuberculosis")
+```
+
+#### Get Enhanced Prediction Statistics
+```http
+GET /api/prediction/stats
+Authorization: Bearer <firebase_id_token>
+```
+
+#### Get Enhanced Prediction History
+```http
+GET /api/prediction/history?page=1&limit=10&modelType=pneumonia
+Authorization: Bearer <firebase_id_token>
+```
+
+#### Get Health Recommendations (Gemini AI)
+```http
+POST /api/prediction/recommendations
+Authorization: Bearer <firebase_id_token>
 Content-Type: application/json
 
 {
-  "inputData": {
-    "feature1": 1.5,
-    "feature2": 2.3,
-    "feature3": 4.1
+  "patientData": {
+    "age": 45,
+    "gender": "male",
+    "symptoms": ["cough", "fever"],
+    "diagnosis": "Pneumonia",
+    "confidence": 87.5
   }
 }
 ```
 
-#### Get Prediction History
+### Patient Management Endpoints
+
+#### Get Patient History
 ```http
-GET /api/prediction/history?page=1&limit=10&status=completed
-Authorization: Bearer <jwt_token>
+GET /api/patients/history?patientId=12345
+Authorization: Bearer <firebase_id_token>
 ```
 
-#### Get Prediction Statistics
+#### Update Patient Information
 ```http
-GET /api/prediction/stats
-Authorization: Bearer <jwt_token>
+PUT /api/patients/:patientId
+Authorization: Bearer <firebase_id_token>
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "age": 45,
+  "medicalHistory": ["Pneumonia 2023", "Annual checkup 2024"]
+}
 ```
 
-## 🚀 Deployment
+## 🚀 Advanced Deployment
 
-### Backend Deployment (Render)
+### Backend Deployment (Render/Vercel)
 
-1. **Create a new Web Service on Render**
-2. **Connect your GitHub repository**
-3. **Configure environment variables** in Render dashboard
-4. **Set build command**: `npm install`
-5. **Set start command**: `npm start`
-6. **Deploy!**
-
-### Frontend Deployment (Vercel)
-
-1. **Install Vercel CLI**:
-   ```bash
-   npm i -g vercel
+1. **Environment Variables Setup**:
+   ```env
+   NODE_ENV=production
+   PORT=5001
+   FIREBASE_PROJECT_ID=your-production-project
+   FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+   FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com
+   GEMINI_API_KEY=your-production-gemini-key
+   FRONTEND_URL=https://your-frontend-domain.com
    ```
 
-2. **Deploy from frontend directory**:
+2. **Build Commands**:
    ```bash
-   cd frontend
-   vercel --prod
+   npm install
+   npm run build
+   npm start
    ```
 
-3. **Set environment variables** in Vercel dashboard:
-   - `REACT_APP_API_URL=https://your-backend-url.render.com/api`
+### Frontend Deployment (Vercel/Netlify)
 
-### Production Environment Variables
+1. **Environment Variables**:
+   ```env
+   REACT_APP_API_URL=https://your-backend-domain.com/api
+   REACT_APP_FIREBASE_API_KEY=your-firebase-api-key
+   REACT_APP_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+   REACT_APP_FIREBASE_PROJECT_ID=your-project-id
+   ```
 
-**Backend (.env)**:
-```env
-NODE_ENV=production
-PORT=5000
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/rd_prediction
-JWT_SECRET=your_production_jwt_secret_very_secure
-FRONTEND_URL=https://your-frontend-url.vercel.app
-```
+2. **Build Commands**:
+   ```bash
+   npm install
+   npm run build
+   ```
 
-## 🧪 Testing
+## 🧪 Testing & Quality Assurance
 
 ### Backend Testing
 ```bash
 cd backend
 npm test
+npm run lint
+npm run test:coverage
 ```
 
 ### Frontend Testing
 ```bash
 cd frontend
 npm test
+npm run lint
+npm run build
 ```
 
-### Run All Tests
+### API Testing
 ```bash
-# From project root
-npm run test:all
+# Test CORS
+curl -X GET http://localhost:5001/api/cors-test
+
+# Test Firebase connection
+curl -X GET http://localhost:5001/api/debug/firestore
+
+# Test environment
+curl -X GET http://localhost:5001/api/debug/env
 ```
 
-## 🛠️ Development
+## 🛠️ Advanced Development
 
-### Code Style
-- **ESLint** and **Prettier** configured for code consistency
-- **Husky** pre-commit hooks for code quality
-- **Conventional Commits** for commit messages
+### Code Quality Tools
+- **ESLint** with medical coding standards
+- **Prettier** for consistent formatting
+- **Husky** pre-commit hooks
+- **Conventional Commits** for medical compliance
 
 ### Available Scripts
 
 **Backend**:
 - `npm start` - Start production server
 - `npm run dev` - Start development server with nodemon
-- `npm test` - Run tests
+- `npm test` - Run test suite
 - `npm run lint` - Run ESLint
+- `npm run test:coverage` - Generate coverage report
 
 **Frontend**:
 - `npm start` - Start development server
 - `npm run build` - Build for production
-- `npm test` - Run tests
+- `npm test` - Run test suite
+- `npm run lint` - Run ESLint
 - `npm run eject` - Eject from Create React App
 
-## 🔧 Customization
+## 🔧 Advanced Customization
 
-### Adding New Features
+### Adding New Medical Models
 
-1. **Backend**: Add new routes in `backend/routes/`
-2. **Frontend**: Add new components in `frontend/src/components/`
-3. **Update API services** in `frontend/src/services/`
+1. **Model Integration**:
+   ```bash
+   # Place model files in backend/ml/models/
+   backend/ml/models/your_model/
+   ├── model.json
+   ├── group1-shard1ofX.bin
+   └── ...
+   ```
 
-### Model Customization
+2. **Update Model Loader**:
+   ```javascript
+   // backend/ml/loadModel.js
+   const yourModel = await tf.loadGraphModel('/models/your_model/model.json');
+   ```
 
-1. **Modify input preprocessing** in `backend/ml/loadModel.js`
-2. **Update prediction logic** in `backend/controllers/predictionController.js`
-3. **Adjust frontend forms** in `frontend/src/components/UploadForm.js`
+3. **Add Prediction Logic**:
+   ```javascript
+   // backend/controllers/enhancedPredictionController.js
+   if (modelType === 'yourModel') {
+     result = await predictYourModel(file.buffer);
+   }
+   ```
 
-## 🐛 Troubleshooting
+### Custom Medical Data Processing
 
-### Common Issues
+1. **Patient Data Validation**:
+   ```javascript
+   // backend/middleware/validation.js
+   const medicalValidation = [
+     body('patientId').isString().isLength({ min: 3 }),
+     body('age').isInt({ min: 0, max: 150 }),
+     body('symptoms').isArray().notEmpty()
+   ];
+   ```
 
-1. **MongoDB Connection Error**:
-   - Ensure MongoDB is running
-   - Check connection string in `.env`
-   - Verify network connectivity
+2. **Medical Image Processing**:
+   ```javascript
+   // backend/middleware/upload.js
+   const medicalImageFilter = (req, file, cb) => {
+     if (file.mimetype.startsWith('image/')) {
+       cb(null, true);
+     } else {
+       cb(new Error('Only medical images are allowed'));
+     }
+   };
+   ```
 
-2. **Model Loading Error**:
-   - Ensure model file exists in `backend/ml/`
-   - Check model file format compatibility
-   - Verify TensorFlow.js version compatibility
+## 🐛 Advanced Troubleshooting
 
-3. **CORS Issues**:
-   - Verify `FRONTEND_URL` in backend `.env`
-   - Check CORS configuration in `server.js`
+### Firebase Issues
 
-4. **Authentication Issues**:
-   - Verify JWT secret configuration
-   - Check token expiration settings
-   - Ensure proper headers in frontend requests
+1. **Authentication Errors**:
+   - Verify Firebase project configuration
+   - Check service account key format
+   - Ensure Firestore rules are correct
 
-## 🤝 Contributing
+2. **Firestore Connection**:
+   - Verify project ID and credentials
+   - Check network connectivity
+   - Ensure Firestore is enabled
+
+### AI Model Issues
+
+1. **Model Loading Errors**:
+   - Verify model file integrity
+   - Check TensorFlow.js version compatibility
+   - Ensure proper model path configuration
+
+2. **Prediction Failures**:
+   - Check input image format and size
+   - Verify model preprocessing requirements
+   - Review error logs for specific issues
+
+### Performance Issues
+
+1. **Slow Predictions**:
+   - Optimize image preprocessing
+   - Consider model quantization
+   - Implement caching for repeated requests
+
+2. **Memory Issues**:
+   - Monitor TensorFlow.js memory usage
+   - Implement proper cleanup after predictions
+   - Consider server-side model execution
+
+## 🤝 Contributing to Medical AI
 
 1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3. **Commit your changes**: `git commit -m 'Add amazing feature'`
-4. **Push to the branch**: `git push origin feature/amazing-feature`
-5. **Open a Pull Request**
+2. **Create a feature branch**: `git checkout -b feature/medical-ai-enhancement`
+3. **Follow medical coding standards** and HIPAA compliance
+4. **Test thoroughly** with medical data
+5. **Document medical implications** of changes
+6. **Commit your changes**: `git commit -m 'feat: add advanced brain tumor detection'`
+7. **Push to the branch**: `git push origin feature/medical-ai-enhancement`
+8. **Open a Pull Request** with detailed medical use case description
 
-## 📄 License
+## 📄 License & Compliance
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-## 👥 Authors
+**Medical Compliance Notice**: This system is designed for educational and research purposes. For clinical use, ensure compliance with local medical device regulations and obtain necessary certifications.
 
-- **Your Name** - *Initial work* - [@yourusername](https://github.com/yourusername)
+## 👥 Medical AI Team
+
+- **AI Research Team** - *Machine Learning & Medical AI*
+- **Medical Professionals** - *Clinical Validation & Use Cases*
+- **Software Engineers** - *System Architecture & Development*
+- **Data Scientists** - *Model Training & Validation*
 
 ## 🙏 Acknowledgments
 
-- **TensorFlow.js** for machine learning capabilities
-- **React** team for the amazing frontend framework
-- **Express.js** for the robust backend framework
-- **MongoDB** for flexible data storage
-- **Vercel** and **Render** for deployment platforms
+- **Google Gemini AI** for advanced medical interpretation
+- **Firebase** for secure medical data management
+- **TensorFlow.js** for client-side medical AI
+- **Medical AI Research Community** for model development
+- **Healthcare Professionals** for clinical insights and validation
 
-## 📞 Support
+## 📞 Medical AI Support
 
-For support, email support@yourapp.com or create an issue in this repository.
+For medical AI support and clinical questions:
+- **Technical Support**: support@rdmedicalai.com
+- **Clinical Inquiries**: clinical@rdmedicalai.com
+- **Research Collaboration**: research@rdmedicalai.com
+- **GitHub Issues**: Create issue in this repository
 
 ---
 
-Made with ❤️ and ☕ by the RD Prediction Team
+**⚠️ Medical Disclaimer**: This system is for educational and research purposes. Always consult qualified healthcare professionals for medical diagnosis and treatment decisions.
+
+Made with ❤️, ☕, and 🤖 by the RD Medical AI Team

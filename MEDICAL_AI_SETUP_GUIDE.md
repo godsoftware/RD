@@ -8,9 +8,9 @@ Bu sistem, 3 farklı AI modeli ile medikal görüntü analizi yapar:
 - **🧠 Brain Tumor Detection** (CT/MRI images)  
  
 
-## ⚡ MongoDB olmadan hızlı başlangıç (Demo Mode)
+## ⚡ Firebase olmadan hızlı başlangıç (Demo Mode)
 
-MongoDB bağlantısını henüz yapmadıysanız, sistemi hemen çalıştırmak için demo modunu açabilirsiniz. Bu modda kullanıcılar ve tahminler bellek içinde tutulur, AI sonuçları da demo/mock üretilir (gerçek model dosyası gerekmez).
+Firebase bağlantısını henüz yapmadıysanız, sistemi hemen çalıştırmak için demo modunu açabilirsiniz. Bu modda kullanıcılar ve tahminler bellek içinde tutulur, AI sonuçları da demo/mock üretilir (gerçek model dosyası gerekmez).
 
 1) `backend/.env` dosyasını minimal olarak oluşturun:
 
@@ -18,7 +18,7 @@ MongoDB bağlantısını henüz yapmadıysanız, sistemi hemen çalıştırmak i
 NODE_ENV=development
 PORT=5001
 
-# Demo mod açık: MongoDB gerektirmez
+# Demo mod açık: Firebase gerektirmez
 DEMO_MODE=true
 
 # Zorunlu: JWT için geçici bir secret (geliştirmede yeterli)
@@ -39,20 +39,21 @@ npm install
 npm run dev
 ```
 
-Bu şekilde MongoDB bağlantısı olmadan sistemi test edebilirsiniz. Hazır olduğunuzda demo modunu kapatıp (DEMO_MODE=false) aşağıdaki MongoDB adımlarına geçin.
+Bu şekilde Firebase bağlantısı olmadan sistemi test edebilirsiniz. Hazır olduğunuzda demo modunu kapatıp (DEMO_MODE=false) aşağıdaki Firebase adımlarına geçin.
 
 ## 🚀 **MANUAL SETUP STEPS**
 
-### **1. MongoDB Atlas Setup**
+### **1. Firebase Setup**
 
-1. **MongoDB Atlas'a gidin**: https://cloud.mongodb.com/
-2. **Hesap oluşturun** (Free tier)
-3. **Yeni cluster oluşturun** (M0 FREE)
-4. **Database user oluşturun**:
-   - Username/password kaydedin =ozkaleresull  tmLSnNzzUnGjwKAF
-5. **Network Access** ayarlayın:
-   - Add IP Address: `0.0.0.0/0` (veya specific IP)
-6. **Connection String** kopyalayın
+1. **Firebase Console'a gidin**: https://console.firebase.google.com/
+2. **Yeni proje oluşturun** (veya mevcut projeyi kullanın)
+3. **Authentication'ı etkinleştirin** (Email/Password)
+4. **Firestore Database'i etkinleştirin**
+5. **Storage'ı etkinleştirin** (medikal görüntüler için)
+6. **Service Account Key oluşturun**:
+   - Project Settings > Service Accounts
+   - Generate new private key
+   - JSON dosyasını indirin
 
 ### **2. Backend .env File Update**
 
@@ -62,16 +63,19 @@ Bu şekilde MongoDB bağlantısı olmadan sistemi test edebilirsiniz. Hazır old
 NODE_ENV=development
 PORT=5001
 
-# Real MongoDB Atlas Connection
-MONGODB_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@your-cluster.xxxxx.mongodb.net/medical_ai_app?retryWrites=true&w=majority
-MONGODB_URI_DEV=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@your-cluster.xxxxx.mongodb.net/medical_ai_app_dev?retryWrites=true&w=majority
+# Firebase Configuration
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_PRIVATE_KEY_ID=your-private-key-id
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com
+FIREBASE_CLIENT_ID=your-client-id
+FIREBASE_CLIENT_CERT_URL=https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-xxxxx%40your-project.iam.gserviceaccount.com
 
-# Switch to Production Mode (MongoDB kullanacaksanız kapatın)
+# Google Gemini AI
+GEMINI_API_KEY=your-gemini-api-key
+
+# Switch to Production Mode (Firebase kullanacaksanız kapatın)
 DEMO_MODE=false
-
-# JWT Secret (change this!)
-JWT_SECRET=your-super-secure-jwt-secret-key-here
-JWT_EXPIRE=7d
 
 # AI Model Paths (TFJS)
 PNEUMONIA_MODEL_PATH=./ml/models/pneumonia_tfjs/model.json
@@ -252,10 +256,10 @@ npm start
    - Verify model format (TFJS `model.json` + `.bin` shards)
    - Check file permissions
 
-3. **MongoDB Connection:**
-   - Verify connection string
-   - Check network access in Atlas
-   - Ensure correct credentials
+3. **Firebase Connection:**
+   - Verify Firebase project configuration
+   - Check service account key format
+   - Ensure Firestore rules are correct
 
 4. **Port Conflicts:**
    - Backend uses port 5001
@@ -272,7 +276,7 @@ Frontend (React)
 └── Authentication Pages
 
 Backend (Node.js/Express)
-├── Real Authentication (MongoDB)
+├── Real Authentication (Firebase)
 ├── AI Model Router
 ├── 3 TensorFlow.js Models
 ├── File Upload Handler
@@ -312,7 +316,9 @@ Eğer sorun yaşarsanız:
 
 ## ✅ **Checklist**
 
-- [ ] MongoDB Atlas cluster oluşturuldu
+- [ ] Firebase project oluşturuldu
+- [ ] Authentication, Firestore ve Storage etkinleştirildi
+- [ ] Service account key oluşturuldu ve .env'e eklendi
 - [ ] .env dosyası güncellendi (`DEMO_MODE=false`)
 - [ ] AI model dosyaları `backend/ml/models/` klasöründe
 - [ ] Backend dependencies install edildi
