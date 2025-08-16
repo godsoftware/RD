@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { enhancedPredictionService } from '../services/enhancedPredictionService';
 import MedicalImageUpload from '../components/MedicalImageUpload';
 import MedicalResultCard from '../components/MedicalResultCard';
+import PatientHistory from '../components/PatientHistory';
 
 /**
  * Dashboard page component - Main user interface for predictions
@@ -37,7 +38,9 @@ const Dashboard = () => {
    */
   const loadStatistics = async () => {
     try {
+      console.log('📊 Dashboard loadStatistics called');
       const stats = await enhancedPredictionService.getEnhancedPredictionStats();
+      console.log('📥 Dashboard received stats:', stats);
       setStatistics(stats);
     } catch (error) {
       console.error('Failed to load statistics:', error);
@@ -52,11 +55,18 @@ const Dashboard = () => {
     setIsLoading(true);
     
     try {
+      console.log('📋 Dashboard loadPredictionHistory called');
       const filterStatus = status === 'all' ? null : status;
       const data = await enhancedPredictionService.getEnhancedPredictionHistory(page, 10, { status: filterStatus });
       
-      setPredictionHistory(data.predictions);
-      setHistoryPagination(data.pagination);
+      console.log('📥 Dashboard received history data:', data);
+      
+      // Handle different response formats
+      const predictions = data.predictions || data.data?.predictions || [];
+      const paginationInfo = data.pagination || data.data?.pagination || null;
+      
+      setPredictionHistory(predictions);
+      setHistoryPagination(paginationInfo);
       setHistoryPage(page);
     } catch (error) {
       console.error('Failed to load prediction history:', error);
@@ -154,25 +164,18 @@ const Dashboard = () => {
           </div>
           
           {/* Quick Stats */}
-          {statistics && (
-            <div className="quick-stats">
-              <div className="stat-card medical-stat">
-                <div className="stat-icon">🩺</div>
-                <div className="stat-value">{statistics.totalPredictions}</div>
-                <div className="stat-label">Images Analyzed</div>
-              </div>
-              <div className="stat-card medical-stat">
-                <div className="stat-icon">✅</div>
-                <div className="stat-value">{statistics.successRate}%</div>
-                <div className="stat-label">Analysis Success</div>
-              </div>
-              <div className="stat-card medical-stat">
-                <div className="stat-icon">🎯</div>
-                <div className="stat-value">{statistics.avgConfidence}%</div>
-                <div className="stat-label">Avg Confidence</div>
-              </div>
+          <div className="quick-stats">
+            <div className="stat-card medical-stat">
+              <div className="stat-icon">🩺</div>
+              <div className="stat-value">{statistics?.totalPredictions || 0}</div>
+              <div className="stat-label">Images Analyzed</div>
             </div>
-          )}
+            <div className="stat-card medical-stat">
+              <div className="stat-icon">🎯</div>
+              <div className="stat-value">{statistics?.avgConfidence ? `${statistics.avgConfidence}%` : '-%'}</div>
+              <div className="stat-label">Avg Confidence</div>
+            </div>
+          </div>
         </div>
 
         {/* Navigation Tabs */}
@@ -243,97 +246,13 @@ const Dashboard = () => {
           {/* History Tab */}
           {activeTab === 'history' && (
             <div className="history-tab">
-              {/* History Controls */}
-              <div className="history-controls">
-                <div className="filter-group">
-                  <label className="filter-label">Filter by status:</label>
-                  <select
-                    value={historyFilter}
-                    onChange={(e) => handleHistoryFilterChange(e.target.value)}
-                    className="filter-select"
-                    disabled={isLoading}
-                  >
-                    <option value="all">All Predictions</option>
-                    <option value="completed">Completed</option>
-                    <option value="pending">Pending</option>
-                    <option value="failed">Failed</option>
-                  </select>
-                </div>
-                
-                <button
-                  onClick={() => loadPredictionHistory(historyPage, historyFilter)}
-                  className="btn btn-secondary"
-                  disabled={isLoading}
-                >
-                  {isLoading ? <div className="spinner"></div> : '🔄'} Refresh
-                </button>
-              </div>
-
-              {/* History List */}
-              {isLoading ? (
-                <div className="loading-state">
-                  <div className="spinner"></div>
-                  <p>Loading prediction history...</p>
-                </div>
-              ) : predictionHistory.length > 0 ? (
-                <>
-                  <div className="history-list">
-                    {predictionHistory.map(prediction => (
-                      <MedicalResultCard
-                        key={prediction._id}
-                        prediction={prediction}
-                        onDelete={handlePredictionDelete}
-                        showActions={true}
-                        compact={true}
-                      />
-                    ))}
-                  </div>
-                  
-                  {/* Pagination */}
-                  {historyPagination && historyPagination.totalPages > 1 && (
-                    <div className="pagination">
-                      <button
-                        onClick={() => handlePageChange(historyPage - 1)}
-                        disabled={!historyPagination.hasPrevPage || isLoading}
-                        className="pagination-btn"
-                      >
-                        ← Previous
-                      </button>
-                      
-                      <span className="pagination-info">
-                        Page {historyPagination.currentPage} of {historyPagination.totalPages}
-                        ({historyPagination.totalPredictions} total)
-                      </span>
-                      
-                      <button
-                        onClick={() => handlePageChange(historyPage + 1)}
-                        disabled={!historyPagination.hasNextPage || isLoading}
-                        className="pagination-btn"
-                      >
-                        Next →
-                      </button>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="empty-state medical-empty">
-                  <div className="empty-icon">📚</div>
-                  <h3>No Medical Analysis History</h3>
-                  <p>Your medical image analysis history will appear here once you analyze your first image.</p>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => handleTabChange('predict')}
-                  >
-                    Analyze First Medical Image
-                  </button>
-                </div>
-              )}
+              <PatientHistory />
             </div>
           )}
         </div>
       </div>
 
-      <style jsx>{`
+      <style jsx="true">{`
         .dashboard-container {
           padding: 2rem 0;
           min-height: calc(100vh - 80px);

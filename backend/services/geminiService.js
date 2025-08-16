@@ -172,26 +172,93 @@ class GeminiService {
       medicalHistory
     } = patientInfo;
 
-    // Kısa ve öz prompt
-    return `Sen bir uzman doktor asistanısın. KISA ve ÖZ bir tıbbi değerlendirme yap. MAKSIMUM 200 KELİME.
+    // Model tipine göre özelleştirilmiş prompt
+    const modelSpecificContext = this.getModelSpecificContext(modelType, prediction, isPositive);
+    
+    return `Sen bir uzman ${modelSpecificContext.specialty} doktorusun. KISA ve ÖZ bir tıbbi değerlendirme yap. MAKSIMUM 200 KELİME.
 
-**ANALİZ SONUÇLARI:**
+**ÖNEMLİ TERİM ANLAYIŞI:**
+- "No tumor" = Tümör YOK, NORMAL
+- "Normal" = Hastalık YOK, SAĞLIKLI  
+- "Negative" = Hastalık Yok, NEGATİF sonuç
+- "Pneumonia" = Akciğer enfeksiyonu VAR
+- "Tuberculosis" = Verem hastalığı VAR
+
+**${modelSpecificContext.title} ANALİZİ:**
 - Sonuç: ${prediction} (${confidence}% güven)
-- Durum: ${isPositive ? 'POZİTİF' : 'NEGATİF'}
+- Durum: ${isPositive ? 'POZİTİF (Hastalık Var)' : 'NEGATİF (Normal/Sağlıklı)'}
 ${age ? `- Yaş: ${age}` : ''}
 ${symptoms ? `- Semptomlar: ${symptoms}` : ''}
 
-**KISA DEĞERLENDİRME İSTE (MAKSIMUM 200 KELİME):**
+**UZMANLIK DEĞERLENDİRMESİ (MAKSIMUM 200 KELİME):**
 
-**1. SONUÇ:** ${prediction} tespit edildi (%${confidence} güven).
+**1. ${modelSpecificContext.resultLabel}:** ${prediction} ${isPositive ? 'tespit edildi' : 'tespit edilmedi (Normal)'} (%${confidence} güven).
 
-**2. DEĞERLENDİRME:** Bu güven seviyesi ne anlama geliyor?
+**2. KLİNİK ANLAM:** ${modelSpecificContext.clinicalMeaning}
 
-**3. ÖNERİ:** Acil durum var mı? Hangi adımlar atılmalı?
+**3. ACİLİYET:** ${modelSpecificContext.urgencyNote}
 
-**4. UYARI:** Bu sadece AI analizi. Mutlaka doktor kontrolü gerekli.
+**4. TAVSİYE:** ${modelSpecificContext.recommendation}
 
-KISA VE ÖZ YANIT VER. UZUN AÇIKLAMALAR YAPMA. TÜRKÇE YANIT VER. MAKSIMUM 200 KELİME.`;
+**5. UYARI:** Bu AI analizi. Mutlaka ${modelSpecificContext.specialty} kontrolü gerekli.
+
+KISA VE ÖZ YANIT VER. TERİMLERİ DOĞRU ANLA. TÜRKÇE YANIT VER. MAKSIMUM 200 KELİME.`;
+  }
+
+  /**
+   * Get model-specific medical context
+   * @param {string} modelType - Model type (pneumonia, brainTumor, tuberculosis)
+   * @param {string} prediction - Prediction result
+   * @param {boolean} isPositive - Whether result is positive
+   * @returns {Object} Model-specific context
+   */
+  getModelSpecificContext(modelType, prediction, isPositive) {
+    const contexts = {
+      pneumonia: {
+        specialty: 'Göğüs Hastalıkları',
+        title: 'AKCIĞER X-RAY',
+        resultLabel: 'PNÖMONİ TANISI',
+        clinicalMeaning: isPositive 
+          ? 'Akciğerde enfeksiyon belirtileri mevcut. Tedavi gerekli.'
+          : 'Akciğer görünümü normal. Pnömoni belirtisi yok.',
+        urgencyNote: isPositive 
+          ? 'Orta aciliyet. 24 saat içinde doktor kontrolü.'
+          : 'Rutin kontrol yeterli.',
+        recommendation: isPositive 
+          ? 'Antibiyotik tedavisi ve dinlenme gerekebilir.'
+          : 'Mevcut sağlık durumu korunmalı.'
+      },
+      brainTumor: {
+        specialty: 'Beyin ve Sinir Cerrahisi',
+        title: 'BEYİN MR/BT',
+        resultLabel: 'BEYİN TÜMÖRÜ TANISI',
+        clinicalMeaning: isPositive 
+          ? 'Beyin dokusunda anormal yapı tespit edildi. Detaylı inceleme gerekli.'
+          : 'Beyin görüntülemesi normal. Tümör belirtisi yok.',
+        urgencyNote: isPositive 
+          ? 'YÜKSEK ACİLİYET! Derhal nöroloji/beyin cerrahisi konsültasyonu.'
+          : 'Rutin kontrol yeterli.',
+        recommendation: isPositive 
+          ? 'İleri görüntüleme ve biyopsi değerlendirmesi gerekli.'
+          : 'Düzenli sağlık kontrolü sürdürülmeli.'
+      },
+      tuberculosis: {
+        specialty: 'Enfeksiyon Hastalıkları',
+        title: 'TÜBERKÜLOZ TARAMA',
+        resultLabel: 'TÜBERKÜLOZ TANISI',
+        clinicalMeaning: isPositive 
+          ? 'Tüberküloz belirtileri mevcut. Hemen tedavi başlanmalı.'
+          : 'Tüberküloz belirtisi yok. Akciğer sağlıklı.',
+        urgencyNote: isPositive 
+          ? 'YÜKSEK ACİLİYET! Bulaşıcı hastalık. İzolasyon gerekli.'
+          : 'Rutin kontrol yeterli.',
+        recommendation: isPositive 
+          ? 'Anti-TB tedavi ve temas takibi başlatılmalı.'
+          : 'Koruyucu önlemler sürdürülmeli.'
+      }
+    };
+
+    return contexts[modelType] || contexts.pneumonia; // Default to pneumonia if unknown
   }
   
   // Eski uzun prompt - artık kullanılmıyor
@@ -277,44 +344,42 @@ Lütfen yukarıdaki formata uygun detaylı bir tıbbi yorum hazırla:`;
     }
 
     try {
-      const prompt = `Sen bir tıp uzmanısın. "${diseaseName}" hastalığı hakkında aşağıdaki hasta profili için detaylı bilgi ver:
+      const prompt = `Sen bir tıp uzmanısın. "${diseaseName}" hakkında bilgi ver. MUTLAKA 500 KELİMEYİ GEÇMEYECEKSİN.
 
-**HASTA PROFİLİ:**
-- Yaş: ${patientInfo.age || 'Belirtilmemiş'}
-- Kilo: ${patientInfo.weight || 'Belirtilmemiş'} kg
-- Cinsiyet: ${patientInfo.gender || 'Belirtilmemiş'}
+Hasta: ${patientInfo.age || 'Bilinmiyor'} yaş, ${patientInfo.gender || 'Belirtilmemiş'} cinsiyet.
 
-**İSTENEN BİLGİLER:**
+ÖZET BİLGİ VER (MAKSİMUM 500 KELİME):
 
-1. **HASTALIK HAKKINDA:**
-   - Hastalığın tanımı ve nedenleri
-   - Bu yaş grubu için risk faktörleri
-   - Tipik semptomlar
+1. HASTALIK HAKKINDA (100 kelime):
+Hastalığın tanımı, nedenleri ve tipik belirtileri.
 
-2. **TEDAVİ SEÇENEKLERİ:**
-   - Standart tedavi yaklaşımları
-   - Bu hasta profili için özel öneriler
-   - Tedavi süreci ve beklentiler
+2. TEDAVİ (100 kelime):
+Standart tedavi yaklaşımları ve süreç.
 
-3. **YAŞAM TARZI ÖNERİLERİ:**
-   - Beslenme önerileri
-   - Egzersiz ve aktivite önerileri
-   - Kaçınılması gereken faktörler
+3. YAŞAM TARZI ÖNERİLERİ (100 kelime):
+Beslenme, egzersiz ve kaçınılması gerekenler.
 
-4. **TAKİP VE KONTROL:**
-   - Ne sıklıkta kontrol gerekli
-   - Hangi testler yapılmalı
-   - Uyarı belirtileri
+4. TAKİP VE KONTROL (100 kelime):
+Kontrol sıklığı, gerekli testler ve uyarı işaretleri.
 
-5. **PROGNOZ:**
-   - Hastalığın seyri hakkında genel bilgi
-   - İyileşme beklentileri
+5. PROGNOZ (100 kelime):
+Hastalığın seyri ve iyileşme beklentileri.
 
-Lütfen Türkçe, anlaşılır ve bilgilendirici bir yanıt hazırla. Hastayı korkutmadan ama gerçekçi bilgiler ver.`;
+TÜRKÇE YAZ. Başlık kullanma, sadece düz metin. Noktalama işareti kullan. 500 kelimeyi kesinlikle geçme.`;
 
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
-      const diseaseInfo = response.text();
+      let diseaseInfo = response.text();
+      
+      // Remove any ** formatting and clean up
+      diseaseInfo = diseaseInfo.replace(/\*\*/g, '');
+      diseaseInfo = diseaseInfo.replace(/\n{3,}/g, '\n\n'); // Replace multiple newlines with double
+      
+      // Truncate to approximately 500 words if needed
+      const words = diseaseInfo.split(/\s+/);
+      if (words.length > 500) {
+        diseaseInfo = words.slice(0, 500).join(' ') + '...';
+      }
 
       return {
         success: true,

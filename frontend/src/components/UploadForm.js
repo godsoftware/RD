@@ -419,7 +419,7 @@ const UploadForm = ({ onPredictionComplete, onPredictionStart }) => {
         </div>
       </form>
 
-      <style jsx>{`
+      <style jsx="true">{`
         .upload-form-container {
           background: white;
           border-radius: 1rem;

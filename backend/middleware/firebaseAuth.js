@@ -1,12 +1,61 @@
 const firebaseService = require('../services/firebaseService');
 
-// Firebase Authentication Middleware
+// Enhanced authenticateToken middleware as per user guide 
+const authenticateToken = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    console.log('🔐 Auth header present:', !!authHeader);
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'No authorization token provided'
+      });
+    }
+    
+    const token = authHeader.substring(7);
+    console.log('🎫 Token extracted, verifying...');
+    
+    if (!firebaseService.isInitialized) {
+      console.error('🚨 Firebase not initialized!');
+      return res.status(503).json({
+        success: false,
+        message: 'Authentication service temporarily unavailable'
+      });
+    }
+
+    const decodedToken = await firebaseService.verifyIdToken(token);
+    console.log('✅ Token verified for user:', decodedToken.uid);
+    
+    req.user = decodedToken;
+    next();
+    
+  } catch (error) {
+    console.error('❌ Token verification failed:', error);
+    res.status(401).json({
+      success: false,
+      message: 'Invalid or expired token',
+      error: error.message
+    });
+  }
+};
+
+// Firebase Authentication Middleware (original)
 const firebaseAuth = async (req, res, next) => {
   try {
+    // CORS preflight requests (OPTIONS) için authentication atlama
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
+
     // Token'ı header'dan al
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      // CORS header'larını set et
+      res.header('Access-Control-Allow-Origin', req.headers.origin || 'http://localhost:3000');
+      res.header('Access-Control-Allow-Credentials', 'true');
+      
       return res.status(401).json({
         success: false,
         message: 'No token provided'
@@ -16,6 +65,17 @@ const firebaseAuth = async (req, res, next) => {
     const idToken = authHeader.split(' ')[1];
 
     if (!firebaseService.isInitialized) {
+      // CORS header'larını set et
+      res.header('Access-Control-Allow-Origin', req.headers.origin || 'http://localhost:3000');
+      res.header('Access-Control-Allow-Credentials', 'true');
+      
+      console.error('🚨 Firebase not initialized during authentication!');
+      console.error('🔧 Firebase service state:', {
+        isInitialized: firebaseService.isInitialized,
+        hasDb: !!firebaseService.db,
+        hasAuth: !!firebaseService.auth
+      });
+      
       return res.status(503).json({
         success: false,
         message: 'Firebase service not available'
@@ -58,6 +118,10 @@ const firebaseAuth = async (req, res, next) => {
 
   } catch (error) {
     console.error('Firebase auth middleware error:', error);
+    
+    // CORS header'larını set et
+    res.header('Access-Control-Allow-Origin', req.headers.origin || 'http://localhost:3000');
+    res.header('Access-Control-Allow-Credentials', 'true');
     
     let message = 'Authentication failed';
     let statusCode = 401;
@@ -134,6 +198,7 @@ const medicalStaffOnly = requireRole(['doctor', 'admin']);
 
 module.exports = {
   firebaseAuth,
+  authenticateToken, // Enhanced version as per user guide
   optionalFirebaseAuth,
   requireRole,
   adminOnly,

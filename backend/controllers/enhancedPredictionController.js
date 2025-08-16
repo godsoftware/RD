@@ -1,6 +1,45 @@
 const { validationResult } = require('express-validator');
 const firebaseService = require('../services/firebaseService');
 const geminiService = require('../services/geminiService');
+
+// Undefined değerleri temizleyen fonksiyon
+function sanitizePredictionData(predictionData) {
+  console.log('🧹 Sanitizing prediction data...');
+  console.log('📋 Original data keys:', Object.keys(predictionData));
+  
+  const sanitized = JSON.parse(JSON.stringify(predictionData)); // Deep copy
+  
+  // patientInfo undefined alanlarını temizle
+  if (sanitized.patientInfo) {
+    Object.keys(sanitized.patientInfo).forEach(key => {
+      if (sanitized.patientInfo[key] === undefined || sanitized.patientInfo[key] === null) {
+        console.log(`🗑️ Removing undefined/null field: patientInfo.${key}`);
+        delete sanitized.patientInfo[key];
+      }
+    });
+  }
+  
+  // imageInfo undefined alanlarını temizle
+  if (sanitized.imageInfo) {
+    Object.keys(sanitized.imageInfo).forEach(key => {
+      if (sanitized.imageInfo[key] === undefined || sanitized.imageInfo[key] === null) {
+        console.log(`🗑️ Removing undefined/null field: imageInfo.${key}`);
+        delete sanitized.imageInfo[key];
+      }
+    });
+  }
+  
+  // Root level undefined alanları temizle
+  Object.keys(sanitized).forEach(key => {
+    if (sanitized[key] === undefined || sanitized[key] === null) {
+      console.log(`🗑️ Removing undefined/null field: ${key}`);
+      delete sanitized[key];
+    }
+  });
+  
+  console.log('✅ Sanitized data keys:', Object.keys(sanitized));
+  return sanitized;
+}
 const { predict, validateInput, getModelInfo, predictPneumonia, predictBrainTumor, predictTuberculosis } = require('../ml/loadModel');
 
 // Geliştirilmiş model otomatik tespit fonksiyonu
@@ -95,7 +134,18 @@ async function autoDetectModelFromImage(file, patientInfo) {
       });
     }
 
-    const userId = req.user?.uid || 'debug-user-123'; // DEBUG: Mock user for testing
+    const userId = req.user?.uid;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User authentication required'
+      });
+    }
+    
+    console.log('🎯 makeEnhancedPrediction called with userId:', userId);
+    console.log('🔥 Firebase service initialized:', firebaseService.isInitialized);
+    
     const file = req.file;
     
     // Patient bilgilerini al
@@ -153,14 +203,45 @@ async function autoDetectModelFromImage(file, patientInfo) {
     let savedPrediction = null;
     if (firebaseService.isInitialized) {
       try {
-        console.log('💾 Saving prediction to Firebase:', predictionData);
-        savedPrediction = await firebaseService.savePrediction(predictionData);
-        console.log('✅ Firebase save successful:', savedPrediction.id);
+        console.log('💾 Saving prediction to Firebase...');
+        console.log('📋 Prediction data to save:', JSON.stringify(predictionData, null, 2));
+        console.log('🔍 User ID in prediction data:', predictionData.userId);
+        console.log('🔥 Firebase service status:', firebaseService.isInitialized);
+        
+        // Veriyi temizle (undefined/null değerleri kaldır)
+        const sanitizedData = sanitizePredictionData(predictionData);
+        
+        savedPrediction = await firebaseService.savePrediction(sanitizedData);
+        console.log('✅ Firebase save successful!');
+        console.log('🆔 Saved prediction ID:', savedPrediction.id);
+        console.log('📊 Prediction saved for user:', savedPrediction.userId);
+        
+        // Verify the save by reading it back
+        try {
+          const verifyDoc = await firebaseService.db.collection('predictions').doc(savedPrediction.id).get();
+          console.log('🔍 Verification - Document exists:', verifyDoc.exists);
+          if (verifyDoc.exists) {
+            console.log('📄 Verification - Document data:', JSON.stringify(verifyDoc.data(), null, 2));
+          }
+        } catch (verifyError) {
+          console.error('❌ Verification failed:', verifyError);
+        }
+        
       } catch (saveError) {
         console.error('❌ Firebase save error:', saveError);
+        console.error('📋 Full error details:', {
+          message: saveError.message,
+          code: saveError.code,
+          stack: saveError.stack
+        });
       }
     } else {
       console.log('⚠️ Firebase service not initialized, skipping save');
+      console.log('🔧 Firebase service state:', {
+        isInitialized: firebaseService.isInitialized,
+        db: !!firebaseService.db,
+        auth: !!firebaseService.auth
+      });
     }
 
     try {
@@ -232,23 +313,62 @@ async function autoDetectModelFromImage(file, patientInfo) {
       // Debug: Model sonucunu konsola yazdır
       console.log('🎯 Final AI Result for Frontend:', JSON.stringify(finalResult, null, 2));
 
-      // Firebase'de prediction'ı güncelle
-      if (savedPrediction && firebaseService.isInitialized) {
+          // Firebase'de prediction'ı güncelle
+    if (savedPrediction && firebaseService.isInitialized) {
+      try {
+        console.log('🔄 Updating Firebase prediction:', savedPrediction.id);
+        console.log('📋 Update data:', {
+          result: finalResult,
+          status: 'completed',
+          completedAt: new Date(),
+          processingTime: processingTime
+        });
+        
+        await firebaseService.db.collection('predictions').doc(savedPrediction.id).update({
+          result: finalResult,
+          status: 'completed',
+          completedAt: new Date(),
+          processingTime: processingTime
+        });
+        
+        console.log('✅ Firebase update successful for prediction:', savedPrediction.id);
+        console.log('📊 Prediction saved for user:', userId);
+        
+        // Verify the final document
         try {
-          console.log('🔄 Updating Firebase prediction:', savedPrediction.id);
-          await firebaseService.db.collection('predictions').doc(savedPrediction.id).update({
-            result: finalResult,
-            status: 'completed',
-            completedAt: new Date(),
-            processingTime: processingTime
-          });
-          console.log('✅ Firebase update successful');
-        } catch (updateError) {
-          console.error('❌ Firebase update error:', updateError);
+          const finalDoc = await firebaseService.db.collection('predictions').doc(savedPrediction.id).get();
+          console.log('🔍 Final verification - Document exists:', finalDoc.exists);
+          if (finalDoc.exists) {
+            const finalData = finalDoc.data();
+            console.log('📄 Final document data:', {
+              id: finalDoc.id,
+              userId: finalData.userId,
+              status: finalData.status,
+              result: finalData.result ? 'Present' : 'Missing',
+              createdAt: finalData.createdAt,
+              completedAt: finalData.completedAt
+            });
+          }
+        } catch (finalVerifyError) {
+          console.error('❌ Final verification failed:', finalVerifyError);
         }
-      } else {
-        console.log('⚠️ Skipping Firebase update - no saved prediction or service not initialized');
+        
+      } catch (updateError) {
+        console.error('❌ Firebase update error:', updateError);
+        console.error('📋 Update error details:', {
+          message: updateError.message,
+          code: updateError.code,
+          stack: updateError.stack
+        });
       }
+    } else {
+      console.log('⚠️ Skipping Firebase update - no saved prediction or service not initialized');
+      console.log('🔍 Debug info:', {
+        savedPrediction: !!savedPrediction,
+        savedPredictionId: savedPrediction?.id,
+        firebaseInitialized: firebaseService.isInitialized
+      });
+    }
 
       // Patient kaydı yoksa oluştur/güncelle
       if (patientInfo.patientId && firebaseService.isInitialized) {
@@ -333,20 +453,137 @@ async function autoDetectModelFromImage(file, patientInfo) {
 // @access  Private
 const getEnhancedPredictionHistory = async (req, res) => {
   try {
-    const userId = req.user?.uid || 'debug-user-123'; // DEBUG: Mock user for testing
+    const userId = req.user?.uid;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User authentication required'
+      });
+    }
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const patientId = req.query.patientId;
     const modelType = req.query.modelType;
 
+    console.log('📋 getEnhancedPredictionHistory called');
+    console.log('👤 User ID:', userId);
+    console.log('🔧 Firebase initialized:', firebaseService.isInitialized);
+
+    // DEBUG: Return mock data if Firebase not available
     if (!firebaseService.isInitialized) {
-      return res.status(503).json({
-        success: false,
-        message: 'Firebase service not available'
+      console.log('🚫 Firebase not initialized, returning enhanced mock data');
+      const mockPredictions = [
+        {
+          id: 'mock-1',
+          _id: 'mock-1',
+          prediction: 'Pneumonia',
+          confidence: 85.5,
+          modelType: 'pneumonia',
+          createdAt: new Date().toISOString(),
+          status: 'completed',
+          patientInfo: {
+            patientName: 'John Doe',
+            age: 45,
+            gender: 'male'
+          },
+          result: {
+            modelType: 'pneumonia',
+            prediction: 'Pneumonia',
+            confidence: 85.5,
+            isPositive: true
+          },
+          geminiInterpretation: 'Akciğer grafisinde pnömoni bulguları tespit edilmiştir. Hasta 24 saat içinde uzman doktor kontrolüne başvurmalıdır.',
+          diseaseInfo: 'Pnömoni akciğerlerin enfeksiyonudur ve tedavi edilebilir bir hastalıktır. Antibiyotik tedavisi ve dinlenme gereklidir.'
+        },
+        {
+          id: 'mock-2',
+          _id: 'mock-2',
+          prediction: 'No tumor',
+          confidence: 92.1,
+          modelType: 'brainTumor',
+          createdAt: new Date(Date.now() - 86400000).toISOString(),
+          status: 'completed',
+          patientInfo: {
+            patientName: 'Jane Smith',
+            age: 35,
+            gender: 'female'
+          },
+          result: {
+            modelType: 'brainTumor',
+            prediction: 'No tumor',
+            confidence: 92.1,
+            isPositive: false
+          },
+          geminiInterpretation: 'Beyin görüntülemesinde normal bulgular tespit edilmiştir. Tümör belirtisi görülmemiştir.',
+          diseaseInfo: 'Normal beyin görüntülemesi sonucu. Herhangi bir anormallik tespit edilmemiştir.'
+        },
+        {
+          id: 'mock-3',
+          _id: 'mock-3',
+          prediction: 'Tuberculosis',
+          confidence: 78.3,
+          modelType: 'tuberculosis',
+          createdAt: new Date(Date.now() - 172800000).toISOString(),
+          status: 'completed',
+          patientInfo: {
+            patientName: 'Ahmed Ali',
+            age: 52,
+            gender: 'male'
+          },
+          result: {
+            modelType: 'tuberculosis',
+            prediction: 'Tuberculosis',
+            confidence: 78.3,
+            isPositive: true
+          },
+          geminiInterpretation: 'Akciğer grafisinde tüberküloz bulgularına rastlanmıştır. Acil tıbbi müdahale gerektirir.',
+          diseaseInfo: 'Tüberküloz bulaşıcı bir hastalıktır ve tedavi edilmesi zorunludur. Anti-TB tedavi başlatılmalıdır.'
+        }
+      ];
+
+      return res.json({
+        success: true,
+        data: {
+          predictions: mockPredictions,
+          pagination: {
+            currentPage: page,
+            totalPages: 1,
+            totalPredictions: mockPredictions.length,
+            hasNextPage: false,
+            hasPrevPage: false
+          }
+        }
       });
     }
 
     // Basit query kullan - index gerektirmeyen
+    console.log('🔎 Querying Firestore predictions collection...');
+    console.log('🔍 Looking for userId:', userId);
+    console.log('🔧 Collection path: predictions');
+    console.log('🔍 Query filter: userId ==', userId);
+    
+    // First, let's check if the collection exists and has any documents
+    try {
+      const allDocsSnapshot = await firebaseService.db.collection('predictions').limit(5).get();
+      console.log('📊 Collection overview:');
+      console.log('  - Total documents in collection:', allDocsSnapshot.size);
+      console.log('  - Is collection empty:', allDocsSnapshot.empty);
+      
+      if (!allDocsSnapshot.empty) {
+        console.log('📄 Sample documents in collection:');
+        allDocsSnapshot.forEach((doc, index) => {
+          const data = doc.data();
+          console.log(`  ${index + 1}. Document ID: ${doc.id}`);
+          console.log(`     User ID: ${data.userId}`);
+          console.log(`     Prediction: ${data.prediction || data.result?.prediction || 'N/A'}`);
+          console.log(`     Created: ${data.createdAt}`);
+        });
+      }
+    } catch (overviewError) {
+      console.error('❌ Collection overview failed:', overviewError);
+    }
+    
     let query = firebaseService.db.collection('predictions')
       .where('userId', '==', userId)
       .limit(limit * page); // Daha fazla veri al, sonra filtrele
@@ -354,15 +591,27 @@ const getEnhancedPredictionHistory = async (req, res) => {
     // Pagination için offset kullanma, bunun yerine client-side pagination
 
     const snapshot = await query.get();
+    console.log('📊 Firestore query results:');
+    console.log('  - Total documents found:', snapshot.size);
+    console.log('  - Is snapshot empty:', snapshot.empty);
+    
     let allPredictions = [];
     
     snapshot.forEach(doc => {
       const data = doc.data();
+      console.log('📄 Found prediction document:', {
+        id: doc.id,
+        userId: data.userId,
+        prediction: data.prediction || data.result?.prediction,
+        createdAt: data.createdAt
+      });
       allPredictions.push({
         id: doc.id,
         ...data
       });
     });
+
+    console.log('✅ Total predictions loaded:', allPredictions.length);
 
     // Client-side filtering ve sorting
     let filteredPredictions = allPredictions;
@@ -424,7 +673,7 @@ const getEnhancedPredictionHistory = async (req, res) => {
 const getEnhancedPredictionById = async (req, res) => {
   try {
     const predictionId = req.params.id;
-    const userId = req.user.uid;
+    const userId = req.user?.uid || 'debug-user-123'; // DEBUG: Mock user for testing
 
     if (!firebaseService.isInitialized) {
       return res.status(503).json({
@@ -477,12 +726,53 @@ const getEnhancedPredictionById = async (req, res) => {
 // @access  Private
 const getEnhancedPredictionStats = async (req, res) => {
   try {
-    const userId = req.user?.uid || 'debug-user-123'; // DEBUG: Mock user for testing
-
-    if (!firebaseService.isInitialized) {
-      return res.status(503).json({
+    const userId = req.user?.uid;
+    
+    if (!userId) {
+      return res.status(401).json({
         success: false,
-        message: 'Firebase service not available'
+        message: 'User authentication required'
+      });
+    }
+
+    console.log('📊 getEnhancedPredictionStats called');
+    console.log('👤 User ID:', userId);
+    console.log('🔧 Firebase initialized:', firebaseService.isInitialized);
+
+    // DEBUG: Return mock data if Firebase not available
+    if (!firebaseService.isInitialized) {
+      console.log('🚫 Firebase not initialized, returning enhanced mock stats');
+      return res.json({
+        success: true,
+        data: {
+          stats: {
+            totalPredictions: 23,
+            completedPredictions: 20,
+            failedPredictions: 2,
+            pendingPredictions: 1,
+            avgConfidence: 87.3,
+            successRate: 87.0,
+            thisMonth: 12,
+            thisWeek: 5,
+            today: 2,
+            modelTypeDistribution: {
+              pneumonia: 8,
+              brainTumor: 7,
+              tuberculosis: 5,
+              other: 3
+            },
+            confidenceDistribution: {
+              high: 15, // >80%
+              medium: 6, // 60-80%
+              low: 2   // <60%
+            },
+            recentActivity: [
+              { date: new Date().toISOString().split('T')[0], count: 2 },
+              { date: new Date(Date.now() - 86400000).toISOString().split('T')[0], count: 3 },
+              { date: new Date(Date.now() - 172800000).toISOString().split('T')[0], count: 1 }
+            ]
+          }
+        }
       });
     }
 
@@ -579,7 +869,14 @@ const getEnhancedPredictionStats = async (req, res) => {
 const deleteEnhancedPrediction = async (req, res) => {
   try {
     const predictionId = req.params.id;
-    const userId = req.user.uid;
+    const userId = req.user?.uid;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User authentication required'
+      });
+    }
 
     if (!firebaseService.isInitialized) {
       return res.status(503).json({
@@ -640,7 +937,7 @@ const deleteEnhancedPrediction = async (req, res) => {
 // @access  Private
 const getHealthRecommendations = async (req, res) => {
   try {
-    const userId = req.user.uid;
+    const userId = req.user?.uid || 'debug-user-123'; // DEBUG: Mock user for testing
     const { patientData } = req.body;
 
     if (!patientData) {

@@ -267,7 +267,7 @@ const ResultCard = ({
         </div>
       )}
 
-      <style jsx>{`
+      <style jsx="true">{`
         .result-card {
           background: white;
           border-radius: 1rem;

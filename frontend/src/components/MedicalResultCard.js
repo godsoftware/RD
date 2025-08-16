@@ -142,9 +142,14 @@ NOTE: This is an AI-assisted analysis and should be reviewed by a qualified radi
     if (typeof data.confidence === 'string' && data.confidence.includes('%')) {
       return parseFloat(data.confidence);
     }
-    return typeof data.confidence === 'number' 
-      ? (data.confidence * 100).toFixed(1)
-      : 0;
+    // Ensure confidence is between 0-100
+    let confidence = typeof data.confidence === 'number' ? data.confidence : 0;
+    // If confidence is between 0-1, convert to percentage
+    if (confidence <= 1) {
+      confidence = confidence * 100;
+    }
+    // Ensure it doesn't exceed 100%
+    return Math.min(confidence, 100).toFixed(1);
   };
 
   /**
@@ -204,6 +209,12 @@ NOTE: This is an AI-assisted analysis and should be reviewed by a qualified radi
         Medical Analysis: {medicalData ? 'YES' : 'NO'}<br/>
         Gemini AI: {data?.geminiInterpretation ? 'YES' : 'NO'}<br/>
         Disease Info: {data?.diseaseInfo ? 'YES' : 'NO'}<br/>
+        Processing Time: {data?.processingTime ? 'YES' : 'NO'}<br/>
+        Result Object: {data?.result ? 'YES' : 'NO'}<br/>
+        {data?.result && (
+          <>Result.Gemini: {data.result.geminiInterpretation ? 'YES' : 'NO'}<br/>
+          Result.Disease: {data.result.diseaseInfo ? 'YES' : 'NO'}<br/></>
+        )}
       </div>
       
       {/* Header */}
@@ -304,7 +315,7 @@ NOTE: This is an AI-assisted analysis and should be reviewed by a qualified radi
               color: '#4285f4'
             }}>
               <span>🤖</span>
-              <span>Gemini AI Gelişmiş Değerlendirme</span>
+              <span>Gemini AI Değerlendirme</span>
             </div>
             <div className="gemini-content" style={{
               lineHeight: '1.6',
@@ -347,17 +358,7 @@ NOTE: This is an AI-assisted analysis and should be reviewed by a qualified radi
           </div>
         )}
 
-        {/* Quick Findings */}
-        {!compact && medicalData.findings && (
-          <div className="quick-findings">
-            <h4>Key Findings:</h4>
-            <ul>
-              {medicalData.findings.slice(0, 3).map((finding, index) => (
-                <li key={index}>{finding}</li>
-              ))}
-            </ul>
-          </div>
-        )}
+
       </div>
 
       {/* Processing Info */}
@@ -480,7 +481,7 @@ NOTE: This is an AI-assisted analysis and should be reviewed by a qualified radi
         </div>
       )}
 
-      <style jsx>{`
+      <style jsx="true">{`
         .medical-result-card {
           background: white;
           border-radius: 1rem;

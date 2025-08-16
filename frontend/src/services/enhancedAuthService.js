@@ -78,59 +78,124 @@ export const enhancedAuthService = {
   // Register new user with Firebase + Backend
   async register(userData) {
     try {
+      console.log('📝 Firebase Register - Starting...');
       const { username, email, password, role } = userData;
       
-      // Firebase'de kullanıcı oluştur
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      let firebaseUser = null;
+      let userCreated = false;
       
-      // Display name'i güncelle
-      await updateProfile(user, {
-        displayName: username
-      });
+      try {
+        // Firebase Authentication - Create user
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        firebaseUser = userCredential.user;
+        userCreated = true;
+        
+        console.log('✅ Firebase user created:', firebaseUser.email);
+        
+        // Update display name
+        await updateProfile(firebaseUser, {
+          displayName: username
+        });
+        
+        console.log('✅ Firebase profile updated');
+      } catch (firebaseError) {
+        // Handle Firebase Auth errors
+        console.error('Firebase Auth error:', firebaseError);
+        
+        if (firebaseError.code === 'auth/email-already-in-use') {
+          // User already exists in Firebase, continue to backend
+          console.log('⚠️ User already exists in Firebase, syncing with backend...');
+        } else {
+          // Other Firebase errors, throw them
+          throw firebaseError;
+        }
+      }
       
-      // Backend'e kullanıcı bilgilerini kaydet
-      const response = await apiClient.post('/auth/register', {
-        username,
-        email,
-        password, // Backend'de sadece kayıt için, saklanmayacak
-        role: role || 'user'
-      });
-      
-      return {
-        user: {
-          uid: user.uid,
-          email: user.email,
-          username: username,
+      try {
+        // Send user data to backend to create/sync Firestore profile
+        const response = await apiClient.post('/auth/register', {
+          username,
+          email,
+          password, // Backend will handle this securely
           role: role || 'user'
-        },
-        message: response.message
-      };
+        });
+        
+        console.log('✅ Backend registration response:', response.data);
+        
+        // Get the ID token for the session
+        let idToken = null;
+        if (firebaseUser) {
+          idToken = await firebaseUser.getIdToken();
+        }
+        
+        return {
+          user: response.data.data?.user || response.data.user,
+          token: idToken,
+          message: response.data.message || 'Registration successful'
+        };
+      } catch (backendError) {
+        console.error('Backend registration error:', backendError);
+        
+        // If we created a Firebase user but backend failed, we might want to clean up
+        // However, since the user exists now, we'll let them try to login instead
+        if (userCreated && firebaseUser) {
+          console.log('⚠️ Firebase user created but backend sync failed. User can try logging in.');
+        }
+        
+        // Re-throw the backend error with a more user-friendly message
+        const errorMessage = backendError.message || 'Registration failed. Please try again.';
+        throw new Error(errorMessage);
+      }
       
     } catch (error) {
       console.error('Registration error:', error);
-      throw error;
+      
+      // Format error message for user
+      let userMessage = 'Registration failed';
+      
+      if (error.code === 'auth/email-already-in-use') {
+        userMessage = 'This email is already registered. Please login instead.';
+      } else if (error.code === 'auth/weak-password') {
+        userMessage = 'Password is too weak. Please use at least 6 characters.';
+      } else if (error.code === 'auth/invalid-email') {
+        userMessage = 'Invalid email address format.';
+      } else if (error.code === 'auth/network-request-failed') {
+        userMessage = 'Network error. Please check your connection.';
+      } else if (error.message) {
+        userMessage = error.message;
+      }
+      
+      throw new Error(userMessage);
     }
   },
 
   // Login user with Firebase
   async login(email, password) {
     try {
+      console.log('🔐 Firebase Login - Starting...');
+      
+      // Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      // ID token'ı al
+      console.log('✅ Firebase login successful:', user.email);
+      
+      // Get ID token
       const idToken = await user.getIdToken();
       
-      // Backend'e token gönder
+      console.log('🎫 Firebase ID token obtained');
+      
+      // Send to backend for validation
       const response = await apiClient.post('/auth/login', {
         idToken: idToken
       });
       
+      console.log('✅ Backend validation response:', response.data);
+      
       return {
-        user: response.data.user,
+        user: response.data.data?.user || response.data.user,
         token: idToken,
-        message: response.message
+        message: response.data.message
       };
       
     } catch (error) {

@@ -235,7 +235,7 @@ const Home = () => {
         </div>
       </section>
 
-      <style jsx>{`
+      <style jsx="true">{`
         .home-page {
           min-height: 100vh;
         }

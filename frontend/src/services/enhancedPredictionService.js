@@ -22,16 +22,14 @@ apiClient.interceptors.request.use(
         console.log('✅ Authorization header set');
       } else {
         console.log('⚠️ No token available');
-        // DEBUG: Geçici olarak auth bypass
-        console.log('🚫 DEBUG: Bypassing auth for testing');
+        // Remove auth header if no token
         delete config.headers.Authorization;
       }
     } catch (error) {
       console.error('❌ Error getting auth token:', error);
-      console.log('🚫 DEBUG: Bypassing auth due to error');
       delete config.headers.Authorization;
     }
-    console.log('📤 Final request config:', config);
+    console.log('📤 Request to:', config.url);
     return config;
   },
   (error) => {
@@ -42,11 +40,10 @@ apiClient.interceptors.request.use(
 // Response interceptor to handle common errors
 apiClient.interceptors.response.use(
   (response) => {
-    console.log('🔧 Axios Interceptor - Status:', response.status);
-    console.log('🔧 Axios Interceptor - Headers:', response.headers);
-    console.log('🔧 Axios Interceptor - Raw Response:', response);
-    console.log('🔧 Axios Interceptor - Response Data:', response.data);
-    console.log('🔧 Axios Interceptor - Data Type:', typeof response.data);
+    console.log('✅ API Response - Status:', response.status);
+    if (response.status !== 200) {
+      console.log('⚠️ Non-200 status response:', response.data);
+    }
     return response.data;
   },
   (error) => {
@@ -54,8 +51,16 @@ apiClient.interceptors.response.use(
       const { status, data } = error.response;
       
       if (status === 401) {
+        console.log('🔒 Authentication required - redirecting to login');
         enhancedAuthService.logout();
         window.location.href = '/login';
+      } else if (status === 429) {
+        console.log('⏱️ Rate limit exceeded - please wait');
+        return Promise.reject({
+          message: 'Too many requests. Please wait a moment before trying again.',
+          status,
+          errors: data?.errors || []
+        });
       }
       
       return Promise.reject({
@@ -103,19 +108,16 @@ export const enhancedPredictionService = {
         }
       });
 
-      console.log('📡 Raw API Response:', response);
-      console.log('📡 Response Status:', response?.success);
-      console.log('📡 Response Data:', response?.data);
-      console.log('📡 Full Response JSON:', JSON.stringify(response, null, 2));
+      console.log('📡 Enhanced prediction response received');
       
       if (response.success && response.data) {
-        console.log('✅ API Success - Returning Data:', response.data);
+        console.log('✅ Enhanced prediction successful');
         return response.data;
       } else if (response.data) {
-        console.log('⚠️ API Response without success flag - Returning Data:', response.data);
+        console.log('✅ Prediction data received');
         return response.data;
       } else if (response.prediction) {
-        console.log('⚠️ API Response with direct prediction - Returning Prediction:', response.prediction);
+        console.log('✅ Direct prediction result received');
         return { prediction: response.prediction };
       }
 
@@ -147,6 +149,8 @@ export const enhancedPredictionService = {
   // Get enhanced prediction history
   async getEnhancedPredictionHistory(page = 1, limit = 10, filters = {}) {
     try {
+      console.log('📋 getEnhancedPredictionHistory called with:', { page, limit, filters });
+      
       const params = { page, limit };
       
       if (filters.patientId) params.patientId = filters.patientId;
@@ -154,10 +158,15 @@ export const enhancedPredictionService = {
       if (filters.dateFrom) params.dateFrom = filters.dateFrom;
       if (filters.dateTo) params.dateTo = filters.dateTo;
 
+      console.log('📤 Request params:', params);
       const response = await apiClient.get('/prediction/history', { params });
+      
+      console.log('📥 Raw response:', response);
 
-      if (response.success && response.data) {
-        return response.data;
+      // Response parsing - axios interceptor already parsed response.data
+      if (response && (response.success !== false)) {
+        console.log('✅ Response parsed successfully');
+        return response.data || response; // Handle both formats
       }
 
       throw new Error(response.message || 'Failed to get enhanced prediction history');
@@ -186,10 +195,16 @@ export const enhancedPredictionService = {
   // Get enhanced prediction statistics
   async getEnhancedPredictionStats() {
     try {
+      console.log('📊 getEnhancedPredictionStats called');
+      
       const response = await apiClient.get('/prediction/stats');
+      
+      console.log('📥 Stats raw response:', response);
 
-      if (response.success && response.data) {
-        return response.data.stats;
+      // Response parsing - axios interceptor already parsed response.data
+      if (response && (response.success !== false)) {
+        console.log('✅ Stats response parsed successfully');
+        return response.data?.stats || response.stats || response; // Handle different formats
       }
 
       throw new Error(response.message || 'Failed to get enhanced prediction statistics');

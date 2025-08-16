@@ -13,12 +13,22 @@ class FirebaseService {
     this.auth = null;
     this.storage = null;
     this.bucket = null;
+    this.admin = admin; // Expose admin for external use
     
     this.init();
   }
 
   init() {
     try {
+      console.log('🔥 Firebase initialization starting...');
+      
+      // Debug environment variables
+      console.log('🔍 Environment variables check:');
+      console.log('- NODE_ENV:', process.env.NODE_ENV);
+      console.log('- FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID ? 'SET' : 'NOT SET');
+      console.log('- FIREBASE_PRIVATE_KEY:', process.env.FIREBASE_PRIVATE_KEY ? 'SET' : 'NOT SET');
+      console.log('- FIREBASE_CLIENT_EMAIL:', process.env.FIREBASE_CLIENT_EMAIL ? 'SET' : 'NOT SET');
+      
       // Firebase config'i environment variables'dan al
       const firebaseConfig = {
         type: process.env.FIREBASE_TYPE || "service_account",
@@ -33,25 +43,42 @@ class FirebaseService {
         client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL
       };
 
+      console.log('🔧 Firebase config prepared');
+
       // Firebase'i sadece gerekli config varsa initialize et
       if (firebaseConfig.project_id && firebaseConfig.private_key && firebaseConfig.client_email) {
+        console.log('✅ Required Firebase configs found, initializing...');
+        
         admin.initializeApp({
           credential: admin.credential.cert(firebaseConfig),
-          storageBucket: `${firebaseConfig.project_id}.appspot.com`
+          storageBucket: `${firebaseConfig.project_id}.firebasestorage.app`
         });
 
         this.db = getFirestore();
         this.auth = getAuth();
         this.storage = getStorage();
         this.bucket = this.storage.bucket();
+        
+        // ÖNEMLİ: undefined değerleri otomatik ignore et
+        this.db.settings({
+          ignoreUndefinedProperties: true
+        });
+        
         this.isInitialized = true;
 
         console.log('✅ Firebase initialized successfully');
+        console.log('📊 Project ID:', firebaseConfig.project_id);
       } else {
-        console.log('⚠️  Firebase not configured - using MongoDB only');
+        console.log('⚠️  Missing Firebase configuration:');
+        console.log('  - project_id:', firebaseConfig.project_id ? '✅' : '❌');
+        console.log('  - private_key:', firebaseConfig.private_key ? '✅' : '❌');
+        console.log('  - client_email:', firebaseConfig.client_email ? '✅' : '❌');
+        console.log('🚫 Firebase not configured - will use mock data');
+        this.isInitialized = false;
       }
     } catch (error) {
       console.error('❌ Firebase initialization error:', error.message);
+      console.error('📋 Full error:', error);
       this.isInitialized = false;
     }
   }
@@ -326,27 +353,60 @@ class FirebaseService {
   }
 
   async savePrediction(predictionData) {
+    console.log('🔥 savePrediction called in Firebase service');
+    console.log('🔧 Service initialized:', this.isInitialized);
+    console.log('📊 Database available:', !!this.db);
+    
     if (!this.isInitialized) {
+      console.error('❌ Firebase not initialized in savePrediction');
       throw new Error('Firebase not initialized');
     }
 
     try {
+      console.log('💾 Adding document to predictions collection...');
+      console.log('📋 Collection path: predictions');
+      
+      // Final sanitization - remove any remaining undefined values
+      const finalData = JSON.parse(JSON.stringify(predictionData, (key, value) => {
+        return value === undefined ? null : value;
+      }));
+      
+      console.log('📄 Final document data to add:', JSON.stringify(finalData, null, 2));
+      
       const docRef = await this.db.collection('predictions').add({
-        ...predictionData,
+        ...finalData,
         createdAt: admin.firestore.FieldValue.serverTimestamp()
       });
+      
+      console.log('✅ Document added successfully!');
+      console.log('🆔 Generated document ID:', docRef.id);
+      console.log('📊 Collection path used:', docRef.parent.path);
 
       // Patient'ın son prediction'ını güncelle
-      if (predictionData.patientId) {
-        await this.db.collection('patients').doc(predictionData.patientId).update({
+      if (finalData.patientId) {
+        console.log('👥 Updating patient record:', finalData.patientId);
+        await this.db.collection('patients').doc(finalData.patientId).update({
           lastPrediction: admin.firestore.FieldValue.serverTimestamp(),
           updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
+        console.log('✅ Patient record updated');
       }
 
-      return { id: docRef.id, ...predictionData };
+      const result = { id: docRef.id, ...finalData };
+      console.log('📤 Returning result:', {
+        id: result.id,
+        userId: result.userId,
+        hasPatientInfo: !!result.patientInfo
+      });
+      
+      return result;
     } catch (error) {
-      console.error('Firebase save prediction error:', error);
+      console.error('❌ Firebase save prediction error:', error);
+      console.error('📋 Error details:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      });
       throw error;
     }
   }

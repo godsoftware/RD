@@ -12,6 +12,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import Profile from './pages/Profile';
 
 // Services
 import { enhancedAuthService } from './services/enhancedAuthService';
@@ -84,6 +85,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <PredictionHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             }
           />

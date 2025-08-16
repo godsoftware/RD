@@ -414,7 +414,7 @@ const Register = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style jsx="true">{`
         .auth-container {
           min-height: calc(100vh - 80px);
           display: flex;

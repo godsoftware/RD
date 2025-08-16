@@ -283,7 +283,7 @@ const SimpleAuth = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style jsx="true">{`
         .auth-container {
           min-height: 100vh;
           display: flex;

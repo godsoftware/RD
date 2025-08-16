@@ -6,6 +6,8 @@ const { validationResult } = require('express-validator');
 // @access  Public
 exports.register = async (req, res) => {
   try {
+    console.log('📝 Firebase Register - Backend processing...');
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -17,13 +19,64 @@ exports.register = async (req, res) => {
 
     const { username, email, password, role } = req.body;
 
-    // Firebase'de kullanıcı oluştur
-    const userRecord = await firebaseService.createUser({
-      username,
-      email,
-      password,
-      role: role || 'user'
-    });
+    console.log('👤 Processing Firebase user and profile...');
+
+    let userRecord;
+    let userExists = false;
+
+    try {
+      // First, try to get the user by email if they already exist
+      userRecord = await firebaseService.auth.getUserByEmail(email);
+      userExists = true;
+      console.log('✅ Firebase user already exists:', userRecord.email);
+    } catch (getUserError) {
+      // User doesn't exist, so create them
+      if (getUserError.code === 'auth/user-not-found') {
+        console.log('👤 Creating new Firebase user...');
+        try {
+          userRecord = await firebaseService.createUser({
+            username,
+            email,
+            password,
+            role: role || 'user'
+          });
+          console.log('✅ Firebase user created:', userRecord.email);
+        } catch (createError) {
+          console.error('Error creating user:', createError);
+          throw createError;
+        }
+      } else {
+        // Some other error occurred
+        throw getUserError;
+      }
+    }
+
+    // If user already exists, just create/update their Firestore profile
+    if (userExists) {
+      console.log('📝 Creating/updating Firestore profile for existing user...');
+      
+      // Check if Firestore profile exists
+      const userDoc = await firebaseService.db.collection('users').doc(userRecord.uid).get();
+      
+      if (!userDoc.exists) {
+        // Create Firestore profile
+        await firebaseService.db.collection('users').doc(userRecord.uid).set({
+          email: email,
+          username: username,
+          role: role || 'user',
+          createdAt: firebaseService.admin.firestore.FieldValue.serverTimestamp(),
+          isActive: true
+        });
+        console.log('✅ Firestore profile created for existing user');
+      } else {
+        // Update username if needed
+        await firebaseService.db.collection('users').doc(userRecord.uid).update({
+          username: username,
+          updatedAt: firebaseService.admin.firestore.FieldValue.serverTimestamp()
+        });
+        console.log('✅ Firestore profile updated for existing user');
+      }
+    }
 
     res.status(201).json({
       success: true,
@@ -63,6 +116,8 @@ exports.register = async (req, res) => {
 // @access  Public
 exports.login = async (req, res) => {
   try {
+    console.log('🔐 Firebase Login - Backend validation starting...');
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -81,20 +136,33 @@ exports.login = async (req, res) => {
       });
     }
 
+    console.log('🎫 Verifying Firebase ID token...');
+
     // Firebase token'ı doğrula
     const decodedToken = await firebaseService.verifyIdToken(idToken);
     
-    // Kullanıcı bilgilerini Firestore'dan al
-    const userDoc = await firebaseService.db.collection('users').doc(decodedToken.uid).get();
+    console.log('✅ Firebase token verified for:', decodedToken.email);
+    
+    // Kullanıcı bilgilerini Firestore'dan al veya oluştur
+    let userDoc = await firebaseService.db.collection('users').doc(decodedToken.uid).get();
     
     if (!userDoc.exists) {
-      return res.status(404).json({
-        success: false,
-        message: 'User profile not found'
+      console.log('👤 Creating user profile in Firestore...');
+      // Eğer kullanıcı profili yoksa oluştur
+      await firebaseService.db.collection('users').doc(decodedToken.uid).set({
+        email: decodedToken.email,
+        username: decodedToken.name || decodedToken.email.split('@')[0],
+        role: 'user',
+        createdAt: firebaseService.admin.firestore.FieldValue.serverTimestamp(),
+        isActive: true
       });
+      
+      userDoc = await firebaseService.db.collection('users').doc(decodedToken.uid).get();
     }
 
     const userData = userDoc.data();
+
+    console.log('✅ User profile retrieved:', userData.email);
 
     res.json({
       success: true,
@@ -106,7 +174,7 @@ exports.login = async (req, res) => {
           username: userData.username,
           role: userData.role || 'user'
         },
-        token: idToken // Frontend'den gelen token'ı geri döndür
+        token: idToken
       }
     });
 

@@ -492,7 +492,7 @@ const MedicalImageUpload = ({ onAnalysisComplete, onAnalysisStart }) => {
         </div>
       </form>
 
-      <style jsx>{`
+      <style jsx="true">{`
         .medical-upload-container {
           background: white;
           border-radius: 1rem;

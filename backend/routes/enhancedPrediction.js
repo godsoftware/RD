@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
-const { firebaseAuth } = require('../middleware/firebaseAuth');
+const { firebaseAuth, authenticateToken } = require('../middleware/firebaseAuth');
 const { upload, handleMulterError } = require('../middleware/upload');
 const {
   makeEnhancedPrediction,
@@ -65,44 +65,44 @@ const recommendationsValidation = [
 // @route   POST /api/prediction/enhanced
 // @access  Private
 router.post('/enhanced', 
-  // firebaseAuth, // DEBUG: Temporarily disabled for testing
+  authenticateToken, // Authentication required for creating predictions
   upload.single('file'),
   handleMulterError,
   predictionValidation,
   makeEnhancedPrediction
 );
 
+// @desc    Get enhanced prediction statistics
+// @route   GET /api/prediction/enhanced/stats
+// @access  Private
+router.get('/enhanced/stats', authenticateToken, getEnhancedPredictionStats);
+
 // @desc    Get enhanced prediction history
 // @route   GET /api/prediction/enhanced/history
 // @access  Private
-router.get('/enhanced/history', /* firebaseAuth, */ getEnhancedPredictionHistory);
+router.get('/enhanced/history', authenticateToken, getEnhancedPredictionHistory);
 
 // @desc    Get single enhanced prediction
 // @route   GET /api/prediction/enhanced/:id
 // @access  Private
-router.get('/enhanced/:id', firebaseAuth, getEnhancedPredictionById);
-
-// @desc    Get enhanced prediction statistics
-// @route   GET /api/prediction/enhanced/stats
-// @access  Private
-router.get('/enhanced/stats', /* firebaseAuth, */ getEnhancedPredictionStats);
+router.get('/enhanced/:id', authenticateToken, getEnhancedPredictionById);
 
 // @desc    Delete enhanced prediction
 // @route   DELETE /api/prediction/enhanced/:id
 // @access  Private
-router.delete('/enhanced/:id', firebaseAuth, deleteEnhancedPrediction);
+router.delete('/enhanced/:id', authenticateToken, deleteEnhancedPrediction);
 
 // @desc    Get health recommendations using Gemini AI
 // @route   POST /api/prediction/recommendations
 // @access  Private
 router.post('/recommendations', 
-  firebaseAuth,
+  authenticateToken,
   recommendationsValidation,
   getHealthRecommendations
 );
 
 // Model information endpoint
-router.get('/model-info', firebaseAuth, (req, res) => {
+router.get('/model-info', authenticateToken, (req, res) => {
   try {
     const { getModelInfo } = require('../ml/loadModel');
     const modelInfo = getModelInfo();
@@ -124,16 +124,16 @@ router.get('/model-info', firebaseAuth, (req, res) => {
 
 // Main prediction endpoints (enhanced Firebase versions)
 router.post('/predict', 
-  firebaseAuth,
+  authenticateToken,
   upload.single('file'),
   handleMulterError,
   predictionValidation,
   makeEnhancedPrediction
 );
 
-router.get('/history', /* firebaseAuth, */ getEnhancedPredictionHistory);
-router.get('/stats', /* firebaseAuth, */ getEnhancedPredictionStats);
-router.get('/:id', firebaseAuth, getEnhancedPredictionById);
-router.delete('/:id', firebaseAuth, deleteEnhancedPrediction);
+router.get('/stats', authenticateToken, getEnhancedPredictionStats);
+router.get('/history', authenticateToken, getEnhancedPredictionHistory);
+router.get('/:id', authenticateToken, getEnhancedPredictionById);
+router.delete('/:id', authenticateToken, deleteEnhancedPrediction);
 
 module.exports = router;
