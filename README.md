@@ -574,30 +574,8 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 **Medical Compliance Notice**: This system is designed for educational and research purposes. For clinical use, ensure compliance with local medical device regulations and obtain necessary certifications.
 
-## 👥 Medical AI Team
 
-- **AI Research Team** - *Machine Learning & Medical AI*
-- **Medical Professionals** - *Clinical Validation & Use Cases*
-- **Software Engineers** - *System Architecture & Development*
-- **Data Scientists** - *Model Training & Validation*
 
-## 🙏 Acknowledgments
-
-- **Google Gemini AI** for advanced medical interpretation
-- **Firebase** for secure medical data management
-- **TensorFlow.js** for client-side medical AI
-- **Medical AI Research Community** for model development
-- **Healthcare Professionals** for clinical insights and validation
-
-## 📞 Medical AI Support
-
-For medical AI support and clinical questions:
-- **Technical Support**: support@rdmedicalai.com
-- **Clinical Inquiries**: clinical@rdmedicalai.com
-- **Research Collaboration**: research@rdmedicalai.com
-- **GitHub Issues**: Create issue in this repository
-
----
 
 **⚠️ Medical Disclaimer**: This system is for educational and research purposes. Always consult qualified healthcare professionals for medical diagnosis and treatment decisions.
 
