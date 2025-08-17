@@ -574,7 +574,4 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 
 
-
-**⚠️ Medical Disclaimer**: This system is for educational and research purposes. Always consult qualified healthcare professionals for medical diagnosis and treatment decisions.
-
 Made with ❤️, ☕, and 🤖 by the RD Medical AI Team
