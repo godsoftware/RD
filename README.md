@@ -572,8 +572,6 @@ curl -X GET http://localhost:5001/api/debug/env
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-**Medical Compliance Notice**: This system is designed for educational and research purposes. For clinical use, ensure compliance with local medical device regulations and obtain necessary certifications.
-
 
 
 
